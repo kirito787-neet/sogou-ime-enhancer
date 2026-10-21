@@ -113,8 +113,8 @@ def main():
                             'android:value="保留原增强功能，新增 HyperOS/MIUI 全面屏键盘优化适配"')
         manifest.write_text(text, encoding='utf-8')
         config = project/'apktool.yml'
-        config.write_text(config.read_text(encoding='utf-8').replace('versionCode: 1', 'versionCode: 2')
-                          .replace('versionName: 1.0', 'versionName: 1.1.0'), encoding='utf-8')
+        config.write_text(config.read_text(encoding='utf-8').replace('versionCode: 1', 'versionCode: 3')
+                          .replace('versionName: 1.0', 'versionName: 1.2.0'), encoding='utf-8')
         entries = ['com.sogouenhance.HookEntry', 'com.sogouenhance.bottom.BottomHook']
         if variant == 'b': entries.insert(0, 'com.sogouenhance.bottom.EmbeddedGuard')
         (project/'assets/xposed_init').write_text('\n'.join(entries)+'\n', encoding='utf-8')

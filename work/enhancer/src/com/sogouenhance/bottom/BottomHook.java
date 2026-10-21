@@ -2,6 +2,7 @@ package com.sogouenhance.bottom;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -14,6 +15,12 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam;
 public final class BottomHook implements IXposedHookLoadPackage {
     private static final String MANAGER = "com.miui.inputmethod.InputMethodBottomManager";
     private static final Set<Method> HOOKS = Collections.synchronizedSet(new HashSet<Method>());
+    private final ThreadLocal<Boolean> updating = new ThreadLocal<Boolean>();
+    private WeakReference<Object> keyboardWindow = new WeakReference<Object>(null);
+    private Class<?> framework;
+    private SkinPalette palette;
+    private boolean refreshPending;
+    private String lastPalette;
 
     public void handleLoadPackage(LoadPackageParam p) {
         if (!"com.sohu.inputmethod.sogou".equals(p.packageName)
@@ -28,30 +35,51 @@ public final class BottomHook implements IXposedHookLoadPackage {
             catch (ClassNotFoundException absent) {
                 injector = Class.forName("android.inputmethodservice.InputMethodServiceStubImpl");
             }
-            final Class<?> framework = injector;
+            framework = injector;
+            palette = new SkinPalette(p.classLoader);
             support(framework);
             disableXiaoAi(framework);
-            hook(framework, "customizeBottomViewColor", new XC_MethodHook() {
-                protected void beforeHookedMethod(MethodHookParam param) {
-                    if (param.args.length == 4 && param.args[1] instanceof Integer) param.args[1] = 0;
-                }
-            });
             hook(framework, "addMiuiBottomView", new XC_MethodHook() {
                 protected void afterHookedMethod(MethodHookParam param) {
-                    try { color(framework); } catch (Throwable error) { failure("color", error); }
+                    if (param.args.length == 7) rememberService(param.args[6]);
+                    scheduleColor();
                 }
             });
             try {
                 hook(Class.forName("com.android.internal.policy.PhoneWindow"), "setNavigationBarColor",
                         new XC_MethodHook() {
-                            protected void beforeHookedMethod(MethodHookParam param) {
-                                if (param.args.length == 1) param.args[0] = 0;
-                            }
                             protected void afterHookedMethod(MethodHookParam param) {
-                                try { color(framework); } catch (Throwable error) { failure("window color", error); }
+                                if (Boolean.TRUE.equals(updating.get())) return;
+                                rememberWindow(param.thisObject);
+                                if (keyboardWindow.get() == param.thisObject) scheduleColor();
                             }
                         });
             } catch (Throwable error) { failure("navigation color", error); }
+            try {
+                hook(Class.forName("com.sohu.util.k", false, p.classLoader), "b", new XC_MethodHook() {
+                    protected void afterHookedMethod(MethodHookParam param) {
+                        if (param.args.length == 2) rememberWindow(param.args[1]);
+                        scheduleColor();
+                    }
+                });
+                Class<?> service = Class.forName("com.sohu.inputmethod.sogou.SogouIME", false, p.classLoader);
+                for (String event : new String[] {"onWindowShown", "onStartInputView", "onConfigurationChanged"}) {
+                    for (Class<?> type = service; type != null; type = type.getSuperclass()) {
+                        boolean found = false;
+                        for (Method m : type.getDeclaredMethods()) {
+                            if (!m.getName().equals(event)) continue;
+                            hookMethod(m, new XC_MethodHook() {
+                                protected void afterHookedMethod(MethodHookParam param) {
+                                    rememberService(param.thisObject);
+                                    scheduleColor();
+                                }
+                            });
+                            found = true;
+                        }
+                        if (found) break;
+                    }
+                }
+            } catch (Throwable error) { failure("skin refresh callbacks", error); }
             filterListener(framework.getName() + "$MiuiSwitchInputMethodListener", p.classLoader);
             hook(Class.forName("android.inputmethodservice.InputMethodModuleManager"), "loadDex",
                     new XC_MethodHook() {
@@ -125,14 +153,47 @@ public final class BottomHook implements IXposedHookLoadPackage {
         } catch (Throwable error) { failure("optional XiaoAi", error); }
     }
 
-    private static void color(Class<?> owner) throws Throwable {
-        Class<?> resources = Class.forName("android.content.res.Resources");
-        Object system = resources.getMethod("getSystem").invoke(null);
-        Object config = resources.getMethod("getConfiguration").invoke(system);
-        boolean dark = (field(config.getClass(), "uiMode").getInt(config) & 48) == 32;
-        int foreground = dark ? -657931 : -14671840;
-        method(owner, "customizeBottomViewColor", Boolean.TYPE, Integer.TYPE, Integer.TYPE, Integer.TYPE)
-                .invoke(null, true, 0, foreground, (foreground & 0xffffff) | 0x66000000);
+    private void rememberService(Object service) {
+        try {
+            Object dialog = method(service.getClass(), "getWindow").invoke(service);
+            if (dialog != null) rememberWindow(method(dialog.getClass(), "getWindow").invoke(dialog));
+        } catch (Throwable error) { failure("input window", error); }
+    }
+
+    private void rememberWindow(Object window) {
+        if (window == null) return;
+        try {
+            Object attrs = method(window.getClass(), "getAttributes").invoke(window);
+            // Never let a settings/login Activity's navigation bar recolor the keyboard.
+            if (field(attrs.getClass(), "type").getInt(attrs) == 2011) keyboardWindow = new WeakReference<Object>(window);
+        } catch (Throwable error) { failure("window type", error); }
+    }
+
+    private synchronized void scheduleColor() {
+        final Object window = keyboardWindow.get();
+        if (window == null || refreshPending || Boolean.TRUE.equals(updating.get())) return;
+        try {
+            Object view = method(window.getClass(), "getDecorView").invoke(window);
+            refreshPending = true;
+            boolean posted = (Boolean) method(view.getClass(), "post", Runnable.class).invoke(view, new Runnable() {
+                public void run() {
+                    synchronized (BottomHook.this) { refreshPending = false; }
+                    if (keyboardWindow.get() != window) { scheduleColor(); return; }
+                    updating.set(true);
+                    try {
+                        Object context = method(window.getClass(), "getContext").invoke(window);
+                        int[] colors = palette.resolve(context);
+                        method(framework, "customizeBottomViewColor", Boolean.TYPE, Integer.TYPE, Integer.TYPE, Integer.TYPE)
+                                .invoke(null, true, colors[0], colors[1], colors[2]);
+                        method(window.getClass(), "setNavigationBarColor", Integer.TYPE).invoke(window, colors[0]);
+                        String value = String.format("bg=#%08x icon=#%08x pressed=#%08x", colors[0], colors[1], colors[2]);
+                        if (!value.equals(lastPalette)) { lastPalette = value; log("SKIN " + value); }
+                    } catch (Throwable error) { failure("skin palette", error); }
+                    finally { updating.remove(); }
+                }
+            });
+            if (!posted) refreshPending = false;
+        } catch (Throwable error) { refreshPending = false; failure("post skin refresh", error); }
     }
 
     private static void hook(Class<?> owner, String name, XC_MethodHook callback) throws Throwable {

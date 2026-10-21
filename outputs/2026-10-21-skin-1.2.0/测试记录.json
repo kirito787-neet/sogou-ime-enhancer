@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-21",
+  "enhancer_version": "1.2.0",
+  "stage": "skin smoke-tested experimental build",
+  "assets": [
+    {
+      "file": "方案A/搜狗输入法-20.17.0-官方.apk",
+      "sha256": "3eb2612040fd7daefb7e92b9de5c1a715b03f272b644e0664948742df1c7a416",
+      "size": 98646944
+    },
+    {
+      "file": "方案A/搜狗增强模块-1.2.0-测试版.apk",
+      "sha256": "7d2830c7e1815393f17875ecacc29f3887a6a5780be9c79feec44eb6304c8dbb",
+      "size": 78983
+    },
+    {
+      "file": "方案B/搜狗输入法-20.17.0-内置增强1.2.0-共存测试版.apk",
+      "sha256": "f30846827e3b275ac5415ff86bd253666373f03dd8bf84657a966e2a11451562",
+      "size": 179623377
+    }
+  ],
+  "device": "Redmi K90 Pro Max / Android16 / HyperOS / 4KB",
+  "palette_behavior_checks_passed": 11,
+  "A_current_skin": {
+    "log_background": "#FFECECEC",
+    "screenshot_pixel_600_2470": "#FFECECEC"
+  },
+  "B_default_skin": {
+    "log_background": "#FFF2F3F7",
+    "screenshot_pixel_600_2470": "#FFF2F3F7"
+  },
+  "B_restored_neon_skin": {
+    "log_background": "#FFECECEC",
+    "screenshot_pixel_600_2470": "#FFECECEC"
+  },
+  "B_embedded_module_count": 1,
+  "B_external_manager": false,
+  "preserved_native_and_resources_members": 44,
+  "deployment": "Uninstalled/reinstalled only com.sogouenhance and com.sohu.inputmethod.sogou.enhanced; restored user data backup",
+  "official_and_xiaomi_install_paths_unchanged": true,
+  "final_default_ime": "com.sohu.inputmethod.sogou.xiaomi/.SogouIME",
+  "final_night_mode": "no",
+  "not_fully_verified": [
+    "A actual switch between distinct skins",
+    "dark and colored skin matrix for both variants",
+    "image/gradient/animation continuity",
+    "all original enhancement boundary cases",
+    "voice and full account login",
+    "non-root / 16KB devices",
+    "long-duration behavior"
+  ]
+}
