@@ -1,0 +1,101 @@
+{
+  "authority": "local static APK/smali comparison, not REA retained evidence",
+  "rea_android_blocker": "REA_JADX_MCP_JAR not configured",
+  "target": "搜狗输入法\\搜狗输入法小米版-10.32.21.202608051602.apk",
+  "sha256": "3806681c47c096598625e009afd0eb69a1f33326a2b5818fedeaa278c6a00dde",
+  "embedded_origin_sha256": "96310db9d9a49d01faa5fa4ba4d64e596626bb2e50fe5c905e6a96f527deaca7",
+  "selected_method_comparisons": [
+    {
+      "changed": true,
+      "before": {
+        "path": "work\\enhancer\\research\\skin-unlock\\origin\\smali_classes2\\com\\sogou\\bu\\basic\\pay\\ProductWithPrice.smali",
+        "line": 80,
+        "signature": ".method public getPayStatus()Ljava/lang/String;",
+        "body": ".method public getPayStatus()Ljava/lang/String;\n    .locals 1\n\n    const/4 v0, 0x0\n\n    invoke-static {v0}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;\n\n    move-result-object v0\n\n    return-object v0\n.end method"
+      },
+      "after": {
+        "path": "work\\enhancer\\research\\skin-unlock\\apk\\smali_classes2\\com\\sogou\\bu\\basic\\pay\\ProductWithPrice.smali",
+        "line": 80,
+        "signature": ".method public getPayStatus()Ljava/lang/String;",
+        "body": ".method public getPayStatus()Ljava/lang/String;\n    .locals 1\n\n    const-string/jumbo v0, \"1\"\n\n    return-object v0\n.end method"
+      }
+    },
+    {
+      "changed": true,
+      "before": {
+        "path": "work\\enhancer\\research\\skin-unlock\\origin\\smali_classes2\\com\\sogou\\bu\\basic\\pay\\ProductWithPrice.smali",
+        "line": 92,
+        "signature": ".method public getPrice()Ljava/lang/String;",
+        "body": ".method public getPrice()Ljava/lang/String;\n    .locals 1\n\n    iget-object v0, p0, Lcom/sogou/bu/basic/pay/ProductWithPrice;->price:Ljava/lang/String;\n\n    return-object v0\n.end method"
+      },
+      "after": {
+        "path": "work\\enhancer\\research\\skin-unlock\\apk\\smali_classes2\\com\\sogou\\bu\\basic\\pay\\ProductWithPrice.smali",
+        "line": 88,
+        "signature": ".method public getPrice()Ljava/lang/String;",
+        "body": ".method public getPrice()Ljava/lang/String;\n    .locals 1\n\n    const-string/jumbo v0, \"0\"\n\n    return-object v0\n.end method"
+      }
+    },
+    {
+      "changed": true,
+      "before": {
+        "path": "work\\enhancer\\research\\skin-unlock\\origin\\smali_classes2\\com\\sogou\\inputmethod\\lib_pay\\SogouIMEPay.smali",
+        "line": 1405,
+        "signature": ".method public static x(Landroid/app/Activity;Lcom/sogou/sogou_router_base/base_bean/ProductInfo;ZLcom/sogou/sogou_router_base/callback/c;)V",
+        "body": ".method public static x(Landroid/app/Activity;Lcom/sogou/sogou_router_base/base_bean/ProductInfo;ZLcom/sogou/sogou_router_base/callback/c;)V\n    .locals 12\n    .param p1    # Lcom/sogou/sogou_router_base/base_bean/ProductInfo;\n        .annotation build Landroidx/annotation/NonNull;\n        .end annotation\n    .end param\n\n    invoke-static {p0}, Lcom/sogou/inputmethod/lib_pay/SogouIMEPay;->s(Landroid/app/Activity;)Z\n\n    move-result v0\n\n    if-nez v0, :cond_0\n\n    return-void\n\n    :cond_0\n    iget-object v0, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->price:Ljava/lang/String;\n\n    const-string/jumbo v1, \"0\"\n\n    invoke-virtual {v1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z\n\n    move-result v0\n\n    if-eqz v0, :cond_2\n\n    if-eqz p3, :cond_1\n\n    invoke-interface {p3}, Lcom/sogou/sogou_router_base/callback/c;->onSuccess()V\n\n    :cond_1\n    return-void\n\n    :cond_2\n    iget-object v0, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->productType:Ljava/lang/String;\n\n    invoke-static {v0}, Lcom/sogou/bu/basic/pay/e;->a(Ljava/lang/String;)Ljava/lang/String;\n\n    move-result-object v0\n\n    iput-object v0, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->productType:Ljava/lang/String;\n\n    invoke-static {p0}, Lcom/sogou/inputmethod/passport/e;->n(Landroid/content/Context;)Z\n\n    move-result v0\n\n    if-nez v0, :cond_4\n\n    if-eqz p2, :cond_3\n\n    iget-object v2, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->productId:Ljava/lang/String;\n\n    iget v3, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->number:I\n\n    iget-object v4, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->price:Ljava/lang/String;\n\n    iget-object v5, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->productType:Ljava/lang/String;\n\n    move-object v1, p0\n\n    move-object v6, p3\n\n    invoke-static/range {v1 .. v6}, Lcom/sogou/inputmethod/lib_pay/SogouIMEPay;->D(Landroid/app/Activity;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Lcom/sogou/sogou_router_base/callback/c;)V\n\n    goto :goto_0\n\n    :cond_3\n    iget-object v7, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->productId:Ljava/lang/String;\n\n    iget v8, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->number:I\n\n    iget-object v9, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->price:Ljava/lang/String;\n\n    iget-object v10, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->productType:Ljava/lang/String;\n\n    move-object v6, p0\n\n    move-object v11, p3\n\n    invoke-static/range {v6 .. v11}, Lcom/sogou/inputmethod/lib_pay/SogouIMEPay;->v(Landroid/app/Activity;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;Lcom/sogou/sogou_router_base/callback/c;)V\n\n    goto :goto_0\n\n    :cond_4\n    new-instance p2, Lcom/sogou/inputmethod/lib_pay/SogouIMEPay$a;\n\n    invoke-direct {p2, p0, p1, p3}, Lcom/sogou/inputmethod/lib_pay/SogouIMEPay$a;-><init>(Landroid/app/Activity;Lcom/sogou/sogou_router_base/base_bean/ProductInfo;Lcom/sogou/sogou_router_base/callback/c;)V\n\n    invoke-virtual {p0, p2}, Landroid/app/Activity;->runOnUiThread(Ljava/lang/Runnable;)V\n\n    :goto_0\n    return-void\n.end method"
+      },
+      "after": {
+        "path": "work\\enhancer\\research\\skin-unlock\\apk\\smali_classes2\\com\\sogou\\inputmethod\\lib_pay\\SogouIMEPay.smali",
+        "line": 1405,
+        "signature": ".method public static x(Landroid/app/Activity;Lcom/sogou/sogou_router_base/base_bean/ProductInfo;ZLcom/sogou/sogou_router_base/callback/c;)V",
+        "body": ".method public static x(Landroid/app/Activity;Lcom/sogou/sogou_router_base/base_bean/ProductInfo;ZLcom/sogou/sogou_router_base/callback/c;)V\n    .locals 1\n\n    invoke-static {p0}, Lcom/sogou/inputmethod/lib_pay/SogouIMEPay;->s(Landroid/app/Activity;)Z\n\n    move-result v0\n\n    if-nez v0, :cond_0\n\n    return-void\n\n    :cond_0\n    const-string/jumbo v0, \"0\"\n\n    iput-object v0, p1, Lcom/sogou/sogou_router_base/base_bean/ProductInfo;->price:Ljava/lang/String;\n\n    if-eqz p3, :cond_1\n\n    invoke-interface {p3}, Lcom/sogou/sogou_router_base/callback/c;->onSuccess()V\n\n    :cond_1\n    return-void\n.end method"
+      }
+    },
+    {
+      "changed": true,
+      "before": {
+        "path": "work\\enhancer\\research\\skin-unlock\\origin\\smali_classes2\\com\\sogou\\pay\\sdk\\PayManager.smali",
+        "line": 1361,
+        "signature": ".method public payWithSogouPayOrder(Landroid/app/Activity;Ljava/util/Map;Lcom/sogou/pay/sdk/PayCallback;)V",
+        "body": ".method public payWithSogouPayOrder(Landroid/app/Activity;Ljava/util/Map;Lcom/sogou/pay/sdk/PayCallback;)V\n    .locals 1\n    .annotation system Ldalvik/annotation/Signature;\n        value = {\n            \"(\",\n            \"Landroid/app/Activity;\",\n            \"Ljava/util/Map<\",\n            \"Ljava/lang/String;\",\n            \"Ljava/lang/String;\",\n            \">;\",\n            \"Lcom/sogou/pay/sdk/PayCallback;\",\n            \")V\"\n        }\n    .end annotation\n\n    .line 1\n    invoke-virtual {p1}, Landroid/content/Context;->getApplicationContext()Landroid/content/Context;\n\n    move-result-object v0\n\n    iput-object v0, p0, Lcom/sogou/pay/sdk/PayManager;->e:Landroid/content/Context;\n\n    const/4 v0, 0x0\n\n    invoke-direct {p0, p1, p2, v0, p3}, Lcom/sogou/pay/sdk/PayManager;->a(Landroid/app/Activity;Ljava/util/Map;Ljava/lang/String;Lcom/sogou/pay/sdk/PayCallback;)V\n\n    return-void\n.end method"
+      },
+      "after": {
+        "path": "work\\enhancer\\research\\skin-unlock\\apk\\smali_classes2\\com\\sogou\\pay\\sdk\\PayManager.smali",
+        "line": 1361,
+        "signature": ".method public payWithSogouPayOrder(Landroid/app/Activity;Ljava/util/Map;Lcom/sogou/pay/sdk/PayCallback;)V",
+        "body": ".method public payWithSogouPayOrder(Landroid/app/Activity;Ljava/util/Map;Lcom/sogou/pay/sdk/PayCallback;)V\n    .locals 1\n\n    invoke-virtual {p1}, Landroid/content/Context;->getApplicationContext()Landroid/content/Context;\n\n    move-result-object v0\n\n    iput-object v0, p0, Lcom/sogou/pay/sdk/PayManager;->e:Landroid/content/Context;\n\n    if-eqz p3, :cond_0\n\n    invoke-interface {p3}, Lcom/sogou/pay/sdk/PayCallback;->onSuccess()V\n\n    :cond_0\n    return-void\n.end method"
+      }
+    },
+    {
+      "changed": false,
+      "before": {
+        "path": "work\\enhancer\\research\\skin-unlock\\origin\\smali_classes2\\com\\sogou\\pay\\sdk\\PayManager.smali",
+        "line": 1390,
+        "signature": ".method public payWithSogouPayOrder(Landroid/app/Activity;Ljava/util/Map;Ljava/lang/String;Lcom/sogou/pay/sdk/PayCallback;)V",
+        "body": ".method public payWithSogouPayOrder(Landroid/app/Activity;Ljava/util/Map;Ljava/lang/String;Lcom/sogou/pay/sdk/PayCallback;)V\n    .locals 1\n    .annotation system Ldalvik/annotation/Signature;\n        value = {\n            \"(\",\n            \"Landroid/app/Activity;\",\n            \"Ljava/util/Map<\",\n            \"Ljava/lang/String;\",\n            \"Ljava/lang/String;\",\n            \">;\",\n            \"Ljava/lang/String;\",\n            \"Lcom/sogou/pay/sdk/PayCallback;\",\n            \")V\"\n        }\n    .end annotation\n\n    .line 2\n    invoke-virtual {p1}, Landroid/content/Context;->getApplicationContext()Landroid/content/Context;\n\n    move-result-object v0\n\n    iput-object v0, p0, Lcom/sogou/pay/sdk/PayManager;->e:Landroid/content/Context;\n\n    invoke-direct {p0, p3}, Lcom/sogou/pay/sdk/PayManager;->a(Ljava/lang/String;)Z\n\n    move-result v0\n\n    if-eqz v0, :cond_0\n\n    const/16 p1, 0x7d0\n\n    const-string/jumbo p3, \"invalid secretKey\"\n\n    invoke-virtual {p0, p1, p3, p2, p4}, Lcom/sogou/pay/sdk/PayManager;->doCallback(ILjava/lang/String;Ljava/util/Map;Lcom/sogou/pay/sdk/PayCallback;)V\n\n    return-void\n\n    :cond_0\n    invoke-direct {p0, p1, p2, p3, p4}, Lcom/sogou/pay/sdk/PayManager;->a(Landroid/app/Activity;Ljava/util/Map;Ljava/lang/String;Lcom/sogou/pay/sdk/PayCallback;)V\n\n    return-void\n.end method"
+      },
+      "after": {
+        "path": "work\\enhancer\\research\\skin-unlock\\apk\\smali_classes2\\com\\sogou\\pay\\sdk\\PayManager.smali",
+        "line": 1378,
+        "signature": ".method public payWithSogouPayOrder(Landroid/app/Activity;Ljava/util/Map;Ljava/lang/String;Lcom/sogou/pay/sdk/PayCallback;)V",
+        "body": ".method public payWithSogouPayOrder(Landroid/app/Activity;Ljava/util/Map;Ljava/lang/String;Lcom/sogou/pay/sdk/PayCallback;)V\n    .locals 1\n    .annotation system Ldalvik/annotation/Signature;\n        value = {\n            \"(\",\n            \"Landroid/app/Activity;\",\n            \"Ljava/util/Map<\",\n            \"Ljava/lang/String;\",\n            \"Ljava/lang/String;\",\n            \">;\",\n            \"Ljava/lang/String;\",\n            \"Lcom/sogou/pay/sdk/PayCallback;\",\n            \")V\"\n        }\n    .end annotation\n\n    .line 2\n    invoke-virtual {p1}, Landroid/content/Context;->getApplicationContext()Landroid/content/Context;\n\n    move-result-object v0\n\n    iput-object v0, p0, Lcom/sogou/pay/sdk/PayManager;->e:Landroid/content/Context;\n\n    invoke-direct {p0, p3}, Lcom/sogou/pay/sdk/PayManager;->a(Ljava/lang/String;)Z\n\n    move-result v0\n\n    if-eqz v0, :cond_0\n\n    const/16 p1, 0x7d0\n\n    const-string/jumbo p3, \"invalid secretKey\"\n\n    invoke-virtual {p0, p1, p3, p2, p4}, Lcom/sogou/pay/sdk/PayManager;->doCallback(ILjava/lang/String;Ljava/util/Map;Lcom/sogou/pay/sdk/PayCallback;)V\n\n    return-void\n\n    :cond_0\n    invoke-direct {p0, p1, p2, p3, p4}, Lcom/sogou/pay/sdk/PayManager;->a(Landroid/app/Activity;Ljava/util/Map;Ljava/lang/String;Lcom/sogou/pay/sdk/PayCallback;)V\n\n    return-void\n.end method"
+      }
+    }
+  ],
+  "standard_product_methods": [
+    {
+      "path": "work\\standard\\smali_classes2\\com\\sogou\\bu\\basic\\pay\\ProductWithPrice.smali",
+      "line": 104,
+      "signature": ".method public getPayStatus()Ljava/lang/String;",
+      "body": ".method public getPayStatus()Ljava/lang/String;\n    .locals 1\n\n    const/4 v0, 0x0\n\n    invoke-static {v0}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;\n\n    move-result-object v0\n\n    return-object v0\n.end method"
+    },
+    {
+      "path": "work\\standard\\smali_classes2\\com\\sogou\\bu\\basic\\pay\\ProductWithPrice.smali",
+      "line": 116,
+      "signature": ".method public getPrice()Ljava/lang/String;",
+      "body": ".method public getPrice()Ljava/lang/String;\n    .locals 1\n\n    iget-object v0, p0, Lcom/sogou/bu/basic/pay/ProductWithPrice;->price:Ljava/lang/String;\n\n    return-object v0\n.end method"
+    }
+  ],
+  "runtime_verified": false,
+  "device_modified": false,
+  "limitation": "Embedded origin is an untrusted comparison baseline, not independently authenticated as official."
+}
