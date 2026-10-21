@@ -96,7 +96,25 @@ def main():
         hook.write_text(text, encoding='utf-8')
         if variant == 'b':
             hook.write_text(hook.read_text(encoding='utf-8').replace(
-                '"com.sohu.inputmethod.sogou"', '"com.sohu.inputmethod.sogou.enhanced"'), encoding='utf-8')
+                '"com.sohu.inputmethod.sogou"', '"com.sohu.inputmethod.sogou.enhanced"').replace(
+                '"\\u6a21\\u5757\\u8bbe\\u7f6e"', '"增强设置"'), encoding='utf-8')
+            settings_path = project/'smali/com/sogouenhance/SettingsActivity.smali'
+            settings = settings_path.read_text(encoding='utf-8')
+            # A single embedded app has no standalone module icon to hide or re-enable.
+            start = settings.index('    .line 108\n')
+            end = settings.index('    .line 120\n', start)
+            assert '"hide_launcher_icon"' in settings[start:end]
+            # The removed block also defined v2 = the "其它" card color; later code still reads it.
+            settings = settings[:start] + '    .line 108\n    const v2, -0x83786c\n\n' + settings[end:]
+            start = settings.index('.method private applyLauncherIconVisibility()V')
+            end = settings.index('.end method', start) + len('.end method')
+            settings = settings[:start] + '''.method private applyLauncherIconVisibility()V
+    .locals 0
+    return-void
+.end method''' + settings[end:]
+            settings = settings.replace('"\\u641c\\u72d7\\u8f93\\u5165\\u6cd5\\u589e\\u5f3a\\u6a21\\u5757"',
+                                        '"增强功能设置"')
+            settings_path.write_text(settings, encoding='utf-8')
             for name in ('Prefs', 'PrefProvider'):
                 path = project/f'smali/com/sogouenhance/{name}.smali'
                 value = path.read_text(encoding='utf-8').replace('com.sogouenhance.prefs',
@@ -129,7 +147,7 @@ def main():
                 '<string name="app_name">搜狗增强·方案A</string>'), encoding='utf-8')
         manifest.write_text(text, encoding='utf-8')
         config = project/'apktool.yml'
-        code, version = (4, '1.2.1') if variant == 'a' else (3, '1.2.0')
+        code, version = (6, '1.2.3') if variant == 'a' else (7, '1.2.3')
         config.write_text(config.read_text(encoding='utf-8').replace('versionCode: 1', f'versionCode: {code}')
                           .replace('versionName: 1.0', f'versionName: {version}'), encoding='utf-8')
         entries = ['com.sogouenhance.HookEntry', 'com.sogouenhance.bottom.BottomHook']

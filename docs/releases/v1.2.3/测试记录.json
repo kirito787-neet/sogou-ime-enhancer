@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-21",
+  "version": "1.2.3",
+  "assets": [
+    {
+      "file": "方案A/搜狗输入法-20.17.0-官方.apk",
+      "sha256": "3eb2612040fd7daefb7e92b9de5c1a715b03f272b644e0664948742df1c7a416",
+      "size": 98646944
+    },
+    {
+      "file": "方案A/搜狗增强模块-1.2.3-底栏跟随皮肤版.apk",
+      "sha256": "4322bb08fc1108acf6055c78d0ae9d085d09a132b1a70f9cac77914ebee95521",
+      "size": 78983
+    },
+    {
+      "file": "方案B/搜狗输入法-20.17.0-内置增强1.2.3-单APK.apk",
+      "sha256": "0c72bff5d5ef82fe3b9b8365cc0bba4c075a544301d175ef5517ba5b595ddf08",
+      "size": 179615859
+    }
+  ],
+  "module_a_sha256": "4322bb08fc1108acf6055c78d0ae9d085d09a132b1a70f9cac77914ebee95521",
+  "module_b_sha256": "df18f762a1faf22fb09b6db0a32cd499dfa12bf408bc02630213cdac6abbe7fa",
+  "single_apk_sha256": "0c72bff5d5ef82fe3b9b8365cc0bba4c075a544301d175ef5517ba5b595ddf08",
+  "embedded_module_matches_b": true,
+  "settings_dex": "classes8.dex",
+  "fixed": [
+    "A: bottom bar now follows the Sogou skin (was frozen on the first palette)",
+    "B: settings page opens without java.lang.VerifyError"
+  ],
+  "verified_on_device": [
+    "A dark skin: SKIN bg=#ff282828, bottom bar pixels (40,40,40) match keyboard",
+    "A light skin: SKIN bg=#fffaf9ff, bottom bar pixels (250,249,254) match keyboard",
+    "A skin switch in-session re-resolves: #ff282828 -> #ffefc8a7 -> #fffaf9ff",
+    "B keyboard shows native bottom bar recolored to the dark skin",
+    "B enhancement settings opens from the Sogou settings entry",
+    "B settings page renders all switch cards, no crash"
+  ],
+  "not_verified": [
+    "skin coverage matrix across all skin categories",
+    "long-duration stability",
+    "paid skin unlock (not added)"
+  ]
+}

@@ -12,11 +12,13 @@ import struct as s
 import zipfile
 import zlib
 from build import BASE, ROOT, java, sha
+from manifest_view import assert_single_launcher
 
 U32 = lambda b, p: s.unpack_from('<I', b, p)[0]
 ANDROID = 'http://schemas.android.com/apk/res/android'
 NONE = 0xffffffff
 HOST = 'com.sohu.inputmethod.sogou.enhanced'
+DISPLAY_NAME = '搜狗输入法·增强版'
 
 
 def read_member(archive, name):
@@ -111,15 +113,31 @@ def add_components(blob):
         end = s.pack('<HHIIIII', 0x103, 16, 24, 0, NONE, NONE, index)
         return start + children + end
 
-    added = node('activity', [('name', 'com.sogouenhance.SettingsActivity'), ('exported', True),
-                              ('label', '搜狗增强设置'), ('theme', 0x01030237)])
+    added = node('activity', [('name', 'com.sogouenhance.SettingsActivity'), ('exported', False),
+                              ('label', '增强功能设置'), ('theme', 0x01030237)])
     added += node('provider', [('name', 'com.sogouenhance.PrefProvider'), ('exported', False),
                               ('authorities', HOST+'.enhance.prefs')])
-    intent = node('intent-filter', children=node('action', [('name', 'android.intent.action.MAIN')])
-                  + node('category', [('name', 'android.intent.category.LAUNCHER')]))
-    added += node('activity-alias', [('name', HOST+'.LauncherAlias'),
-                                    ('exported', True), ('enabled', True), ('label', '搜狗增强设置'),
-                                    ('targetActivity', 'com.sogouenhance.SettingsActivity')], intent)
+    # Embedded settings are internal to the input method, never another desktop app.
+
+    # Explicit labels avoid inheriting the ordinary edition's resource label in
+    # launcher/IME pickers while preserving the original resources.arsc payload.
+    renamed = []
+    for kind, data in parts:
+        if kind == 0x102:
+            tag = strings[U32(data, 20)]
+            first, width, total = s.unpack_from('<HHH', data, 24)
+            attrs = [(16+first+width*i) for i in range(total)]
+            name = next((strings[U32(data, p+16)] for p in attrs
+                         if strings[U32(data, p+4)] == 'name' and data[p+15] == 3), None)
+            if tag == 'application' or name in (
+                    'com.sohu.inputmethod.sogou.SogouIMELauncher',
+                    'com.sohu.inputmethod.sogou.SogouIMEAliasLauncher',
+                    'com.sohu.inputmethod.sogou.SogouIME', '.SogouIME'):
+                label = next(p for p in attrs if strings[U32(data, p+4)] == 'label')
+                replacement = attribute('label', DISPLAY_NAME)
+                data = data[:label]+replacement+data[label+20:]
+        renamed.append((kind, data))
+    parts = renamed
 
     def enc_length(n, wide=False):
         if wide: return s.pack('<H', n) if n < 0x8000 else s.pack('<HH', 0x8000 | (n>>16), n & 0xffff)
@@ -192,18 +210,20 @@ def main():
     patched_dir = BASE/'build/npatch'
     patched_dir.mkdir(exist_ok=True)
     java('-Xmx4g', '-jar', ROOT/'work/patch/npatch.jar', '-m', module,
-         '-l', '3', '-f', '-npa', '-p', HOST, '--name', '搜狗输入法·增强版', '-o', patched_dir, official)
+         '-l', '3', '-f', '-npa', '-p', HOST, '--name', DISPLAY_NAME, '-o', patched_dir, official)
     patched = next(patched_dir.glob('*npatched.apk'))
     with zipfile.ZipFile(patched) as source:
         origin = read_member(source, 'assets/npatch/origin.apk')
         config = json.loads(read_member(source, 'assets/npatch/config.json'))
         with zipfile.ZipFile(BytesIO(origin)) as original, zipfile.ZipFile(module) as enhanced:
             manifest = add_components(original.read('AndroidManifest.xml'))
+            assert_single_launcher(manifest)
             dex_names = [n for n in original.namelist() if re.fullmatch(r'classes\d*\.dex', n)]
             dex_name = f'classes{len(dex_names)+1}.dex'
             modified_origin = rewrite_apk(origin, {'AndroidManifest.xml': manifest,
                                                   dex_name: enhanced.read('classes.dex')})
         outer_manifest = add_components(read_member(source, 'AndroidManifest.xml'))
+        launcher = assert_single_launcher(outer_manifest)
     product = BASE/'build/sogou-20.17.0-enhanced-single-unsigned.apk'
     product.write_bytes(rewrite_apk(patched.read_bytes(), {'AndroidManifest.xml': outer_manifest,
                                   'assets/npatch/origin.apk': modified_origin}))
@@ -214,7 +234,9 @@ def main():
     report = {'apk': str(signed.relative_to(ROOT)), 'sha256': sha(signed), 'version': '20.17.0 (2620)',
               'embedded_module_sha256': sha(module), 'official_source_sha256': sha(official),
               'original_signature_preserved_in_npatch_config': bool(config.get('originalSignature')),
-              'settings_dex': dex_name, 'runtime': 'pending', 'separate_module_install_required': False}
+              'settings_dex': dex_name, 'runtime': 'pending', 'separate_module_install_required': False,
+              'enhancement_version': '1.2.3', 'launcher_policy': 'one input-method launcher, no module launcher'}
+    report['enabled_launchers'] = launcher
     report['package'] = HOST
     (BASE/'build/single.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
     print(json.dumps(report, ensure_ascii=False, indent=2))

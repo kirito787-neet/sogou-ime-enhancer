@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-21",
+  "stage": "smoke-tested experimental build",
+  "device": "Redmi K90 Pro Max, Android 16, HyperOS, 4KB pages",
+  "assets": [
+    {
+      "file": "方案A/搜狗输入法-20.17.0-官方.apk",
+      "sha256": "3eb2612040fd7daefb7e92b9de5c1a715b03f272b644e0664948742df1c7a416",
+      "size": 98646944
+    },
+    {
+      "file": "方案A/搜狗增强模块-1.1.0-测试版.apk",
+      "sha256": "0181ef3f78401b93cf3f690108bbda26243dfb9220be6790960af5171b08561d",
+      "size": 74887
+    },
+    {
+      "file": "方案B/搜狗输入法-20.17.0-内置增强-共存测试版.apk",
+      "sha256": "3f40debb86078e1d45bbb636dd2b0b34f08e223cc5d41199210def7fe8e18c09",
+      "size": 179618339
+    }
+  ],
+  "A_baseline_hooks_registered": 27,
+  "B_embedded_modules": [
+    "assets/npatch/modules/com.sogouenhance.apk"
+  ],
+  "B_external_manager": false,
+  "B_native_and_resources_preserved_members": 44,
+  "verified_runtime": [
+    "A keyboard and native bottom visible",
+    "B external input-method modules disabled and soft-rebooted",
+    "B nihao physical key taps, candidate selection, committed 你好",
+    "B native bottom right button opens clipboard",
+    "B integrated settings and provider preferences read/write",
+    "B login activity resources load without old renamed-package exception"
+  ],
+  "not_fully_verified": [
+    "bottom-left complete IME switching behavior",
+    "voice input",
+    "account authentication",
+    "long-duration behavior",
+    "all baseline feature boundary cases",
+    "non-root device",
+    "16KB page device"
+  ],
+  "device_final_default_ime": "com.sohu.inputmethod.sogou.xiaomi/.SogouIME",
+  "github_published": false
+}

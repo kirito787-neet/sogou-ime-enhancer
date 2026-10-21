@@ -1,0 +1,67 @@
+# ---- 本地产物（APK 二进制只放 GitHub Releases，不进 git 历史）----
+outputs/
+*.apk
+*.apk.idsig
+*.jks
+*.keystore
+*.p12
+
+# ---- 构建中间物 ----
+work/enhancer/build/
+work/enhancer/classes/
+work/enhancer/dex/
+work/enhancer/stubs/
+work/enhancer/stubs.jar
+work/enhancer/tmp/
+work/enhancer/__pycache__/
+work/enhancer/module-a/
+work/enhancer/module-b/
+work/enhancer/official/
+work/enhancer/baseline-apk/
+work/enhancer/baseline-jadx/
+work/enhancer/device-a/
+work/enhancer/device-b/
+work/enhancer/a-repair/
+work/enhancer/b-launcher/
+work/enhancer/skin-test/
+work/enhancer/research/skin-unlock/
+work/enhancer/*-log.txt
+work/tmp/
+work/signed/
+work/patch/
+work/standard/
+work/xiaomi/
+work/compat/
+work/dsh/
+work/device/
+work/yuehong/
+work/wxime/
+work/ads/
+work/inventory/
+work/framework/
+work/framework-xiaomi/
+work/xposed/
+work/tool-home/
+work/jadx-cfg/
+work/signing/
+work/tools/
+*.log
+__pycache__/
+*.pyc
+
+# ---- 用户本地备份与原始安装包 ----
+backup/
+tmp/
+搜狗输入法/
+*.rar
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---- 构建/测试临时产物 ----
+work/enhancer/tests/classes/
+work/enhancer/tests/fixtures/
+work/enhancer/probe/build/

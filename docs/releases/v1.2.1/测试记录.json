@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-21",
+  "version": "A 1.2.1",
+  "assets": [
+    {
+      "file": "方案A/搜狗输入法-20.17.0-官方.apk",
+      "sha256": "3eb2612040fd7daefb7e92b9de5c1a715b03f272b644e0664948742df1c7a416",
+      "size": 98646944
+    },
+    {
+      "file": "方案A/搜狗增强模块-1.2.1-入口修缮版.apk",
+      "sha256": "976a9ef463a95d444db729c4493b141ed8b6a14bd5c87230cbf62217c119ef00",
+      "size": 78983
+    }
+  ],
+  "installed_module_matches_delivery": true,
+  "original_hooks_registered": 27,
+  "unchanged_original_smali_classes_except_adapted_entry": 48,
+  "verified": [
+    "module cold launch",
+    "official homepage button and cold launch",
+    "enhancement settings button",
+    "system input settings button",
+    "reopen launcher clears previous settings page",
+    "official settings -> standalone module settings",
+    "physical nihao taps -> Chinese candidate -> committed 你好",
+    "native bottom visible and right button opens clipboard",
+    "module preferences preserved",
+    "default input method preserved",
+    "official install path unchanged"
+  ],
+  "original_default_ime": "com.sohu.inputmethod.sogou/.SogouIME",
+  "B_and_xiaomi": "No install, uninstall or data clearing operations performed",
+  "not_fully_verified": [
+    "reported both old icons opening module page not reproduced",
+    "full original enhancement boundary cases",
+    "voice and full login",
+    "skin coverage matrix",
+    "long-duration stability"
+  ],
+  "skin_unlock_added": false
+}
