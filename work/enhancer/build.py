@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import zipfile
+import argparse
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / 'work/enhancer'
@@ -27,6 +28,9 @@ def sha(path):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--variant', choices=('a', 'b', 'both'), default='both')
+    options = parser.parse_args()
     for folder in ('tmp', 'classes', 'stubs', 'dex', 'build'):
         (BASE / folder).mkdir(parents=True, exist_ok=True)
     if not (BASE/'baseline-apk/AndroidManifest.xml').exists():
@@ -42,8 +46,10 @@ def main():
     java('-cp', ROOT/'work/tools/r8.jar', 'com.android.tools.r8.D8', '--release',
          '--min-api', '24', '--lib', BASE/'stubs.jar', '--no-desugaring',
          '--output', BASE/'dex', *(BASE/'classes').rglob('*.class'))
-    reports = {}
-    for variant in ('a', 'b'):
+    report_path = BASE/'build/modules.json'
+    reports = json.loads(report_path.read_text(encoding='utf-8')) if report_path.exists() else {}
+    variants = ('a', 'b') if options.variant == 'both' else (options.variant,)
+    for variant in variants:
         project = BASE / ('module-' + variant)
         shutil.copytree(BASE/'baseline-apk', project, dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns('build', 'original'))
@@ -111,10 +117,21 @@ def main():
         text = manifest.read_text(encoding='utf-8').replace('android:debuggable="true"', 'android:debuggable="false"')
         text = text.replace('android:value="搜狗输入法增强模块"',
                             'android:value="保留原增强功能，新增 HyperOS/MIUI 全面屏键盘优化适配"')
+        if variant == 'a':
+            shutil.copytree(BASE/'companion-smali', project/'smali', dirs_exist_ok=True)
+            text = text.replace('android:targetActivity=".SettingsActivity"',
+                                'android:targetActivity=".AHomeActivity"')
+            text = text.replace('        <activity-alias ',
+                                '        <activity android:name=".AHomeActivity" android:exported="true" android:launchMode="singleTask" android:theme="@style/AppTheme"/>\n        <activity-alias ', 1)
+            labels = project/'res/values/strings.xml'
+            labels.write_text(labels.read_text(encoding='utf-8').replace(
+                '<string name="app_name">搜狗输入法增强模块</string>',
+                '<string name="app_name">搜狗增强·方案A</string>'), encoding='utf-8')
         manifest.write_text(text, encoding='utf-8')
         config = project/'apktool.yml'
-        config.write_text(config.read_text(encoding='utf-8').replace('versionCode: 1', 'versionCode: 3')
-                          .replace('versionName: 1.0', 'versionName: 1.2.0'), encoding='utf-8')
+        code, version = (4, '1.2.1') if variant == 'a' else (3, '1.2.0')
+        config.write_text(config.read_text(encoding='utf-8').replace('versionCode: 1', f'versionCode: {code}')
+                          .replace('versionName: 1.0', f'versionName: {version}'), encoding='utf-8')
         entries = ['com.sogouenhance.HookEntry', 'com.sogouenhance.bottom.BottomHook']
         if variant == 'b': entries.insert(0, 'com.sogouenhance.bottom.EmbeddedGuard')
         (project/'assets/xposed_init').write_text('\n'.join(entries)+'\n', encoding='utf-8')
@@ -132,6 +149,7 @@ def main():
             java('-jar', ROOT/'work/tools/signer.jar', '-a', packed, '-o', signed_dir)
         signed = next(signed_dir.glob('*.apk'))
         reports[variant] = {'apk': str(signed.relative_to(ROOT)), 'sha256': sha(signed),
+                            'version': version,
                             'baseline': 'com.sogouenhance 1.0', 'xposed_entries': entries,
                             'runtime': 'pending'}
     (BASE/'build/modules.json').write_text(json.dumps(reports, ensure_ascii=False, indent=2), encoding='utf-8')

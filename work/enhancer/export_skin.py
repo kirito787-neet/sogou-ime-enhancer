@@ -14,6 +14,7 @@ OUT = ROOT/'outputs/2026-10-21-skin-1.2.0'
 def main():
     modules = json.loads((BASE/'build/modules.json').read_text(encoding='utf-8'))
     single = json.loads((BASE/'build/single.json').read_text(encoding='utf-8'))
+    assert modules['a'].get('version', '1.2.0') == '1.2.0', 'Use the matching version exporter.'
     sources = {
         '方案A/搜狗输入法-20.17.0-官方.apk': BASE/'official/SogouInput_20.17.0_android_sweb.apk',
         '方案A/搜狗增强模块-1.2.0-测试版.apk': ROOT/modules['a']['apk'],
