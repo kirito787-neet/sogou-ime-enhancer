@@ -195,7 +195,7 @@ def main():
                 '<string name="app_name">搜狗增强·方案A</string>'), encoding='utf-8')
         manifest.write_text(text, encoding='utf-8')
         config = project/'apktool.yml'
-        code, version = (12, '1.3.3') if variant == 'a' else (11, '1.2.7')
+        code, version = (13, '1.3.4') if variant == 'a' else (12, '1.2.8')
         config.write_text(config.read_text(encoding='utf-8').replace('versionCode: 1', f'versionCode: {code}')
                           .replace('versionName: 1.0', f'versionName: {version}'), encoding='utf-8')
         entries = ['com.sogouenhance.HookEntry', 'com.sogouenhance.bottom.BottomHook']

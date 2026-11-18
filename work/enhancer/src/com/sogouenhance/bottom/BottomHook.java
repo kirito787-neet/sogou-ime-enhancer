@@ -457,6 +457,73 @@ public final class BottomHook implements IXposedHookLoadPackage {
                 } catch (Throwable error) { failure("enabled IMEs; original retained", error); }
             }
         });
+        fitImePicker(loader);
+    }
+
+    private static void fitImePicker(ClassLoader loader) {
+        try {
+            Class<?> popup = Class.forName("com.miui.inputmethod.InputMethodSwitchPopupView", false, loader);
+            Class<?> adapter = Class.forName("com.miui.inputmethod.InputMethodSwitchAdapter", false, loader);
+            Class<?> listView = Class.forName("android.widget.ListView");
+            Class<?> view = Class.forName("android.view.View");
+            Class<?> group = Class.forName("android.view.ViewGroup");
+            Class<?> rect = Class.forName("android.graphics.Rect");
+            Field rows = field(popup, "mListView");
+            Field rowAdapter = field(popup, "mInputMethodSwitchAdapter");
+            Field anchor = field(popup, "mParentView");
+            Field currentId = field(adapter, "mDefaultInputMethod");
+            Method count = adapter.getMethod("getCount");
+            Method getItem = adapter.getMethod("getItem", Integer.TYPE);
+            Method getRow = adapter.getMethod("getView", Integer.TYPE, view, group);
+            Method measure = view.getMethod("measure", Integer.TYPE, Integer.TYPE);
+            Method measuredHeight = view.getMethod("getMeasuredHeight");
+            Method visibleFrame = view.getMethod("getWindowVisibleDisplayFrame", rect);
+            Method frameHeight = rect.getMethod("height");
+            Method frameWidth = rect.getMethod("width");
+            Method getParams = view.getMethod("getLayoutParams");
+            Class<?> params = Class.forName("android.view.ViewGroup$LayoutParams");
+            Field height = params.getField("height");
+            Method setParams = view.getMethod("setLayoutParams", params);
+            Method select = listView.getMethod("setSelection", Integer.TYPE);
+            Method imeId = Class.forName("android.view.inputmethod.InputMethodInfo").getMethod("getId");
+
+            hookMethod(method(popup, "setListViewHeight"), new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    Object items = rowAdapter.get(call.thisObject);
+                    Object list = rows.get(call.thisObject);
+                    if (items == null || list == null) return;
+                    int total = (Integer) count.invoke(items);
+                    if (total <= 4) return;
+
+                    Object frame = rect.getConstructor().newInstance();
+                    visibleFrame.invoke(anchor.get(call.thisObject), frame);
+                    int screenHeight = (Integer) frameHeight.invoke(frame);
+                    int visibleCount = 4;
+                    if (screenHeight > (Integer) frameWidth.invoke(frame)) {
+                        Object fifth = getRow.invoke(items, 4, null, list);
+                        measure.invoke(fifth, 0, 0);
+                        int extra = (Integer) measuredHeight.invoke(fifth);
+                        Object layout = getParams.invoke(list);
+                        int listHeight = height.getInt(layout);
+                        // Leave room for the settings row and popup padding.
+                        if (extra > 0 && listHeight + extra * 3 <= screenHeight) {
+                            height.setInt(layout, listHeight + extra);
+                            setParams.invoke(list, layout);
+                            visibleCount++;
+                        }
+                    }
+                    String selected = (String) currentId.get(items);
+                    for (int position = visibleCount; position < total; position++) {
+                        if (selected != null && selected.equals(imeId.invoke(getItem.invoke(items, position)))) {
+                            select.invoke(list, position - visibleCount + 1);
+                            break;
+                        }
+                    }
+                }
+            });
+        } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException absent) {
+            log("OPTIONAL input method picker layout unavailable");
+        } catch (Throwable error) { failure("input method picker", error); }
     }
 
     private static void repairBottomMargins(Class<?> manager, ClassLoader loader) {
