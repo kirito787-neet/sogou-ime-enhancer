@@ -206,7 +206,8 @@ def rewrite_apk(blob, replacements):
 
 def main():
     official = BASE/'official/SogouInput_20.17.0_android_sweb.apk'
-    module = ROOT/json.loads((BASE/'build/modules.json').read_text(encoding='utf-8'))['b']['apk']
+    module_report = json.loads((BASE/'build/modules.json').read_text(encoding='utf-8'))['b']
+    module = ROOT/module_report['apk']
     patched_dir = BASE/'build/npatch'
     patched_dir.mkdir(exist_ok=True)
     java('-Xmx4g', '-jar', ROOT/'work/patch/npatch.jar', '-m', module,
@@ -235,7 +236,8 @@ def main():
               'embedded_module_sha256': sha(module), 'official_source_sha256': sha(official),
               'original_signature_preserved_in_npatch_config': bool(config.get('originalSignature')),
               'settings_dex': dex_name, 'runtime': 'pending', 'separate_module_install_required': False,
-              'enhancement_version': '1.2.3', 'launcher_policy': 'one input-method launcher, no module launcher'}
+              'enhancement_version': module_report['version'],
+              'launcher_policy': 'one input-method launcher, no module launcher'}
     report['enabled_launchers'] = launcher
     report['package'] = HOST
     (BASE/'build/single.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')

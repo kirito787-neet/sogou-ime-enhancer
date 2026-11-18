@@ -19,12 +19,15 @@ public final class BottomHook implements IXposedHookLoadPackage {
     private static final Set<Method> HOOKS = Collections.synchronizedSet(new HashSet<Method>());
     private final ThreadLocal<Boolean> updating = new ThreadLocal<Boolean>();
     private WeakReference<Object> keyboardWindow = new WeakReference<Object>(null);
+    private WeakReference<Object> bottomArea = new WeakReference<Object>(null);
     private Class<?> framework;
     private SkinPalette palette;
     private boolean refreshPending;
     private long refreshPendingAt;
     private Handler main;
     private String lastPalette;
+    private boolean hyperOs4;
+    private boolean gestureLayout;
 
     public void handleLoadPackage(LoadPackageParam p) {
         if (!"com.sohu.inputmethod.sogou".equals(p.packageName)
@@ -40,18 +43,30 @@ public final class BottomHook implements IXposedHookLoadPackage {
                 injector = Class.forName("android.inputmethodservice.InputMethodServiceStubImpl");
             }
             framework = injector;
+            hyperOs4 = Class.forName("android.os.Build$VERSION").getField("SDK_INT").getInt(null) >= 37;
             palette = new SkinPalette(p.classLoader);
             support(framework);
             disableXiaoAi(framework);
             hook(framework, "addMiuiBottomView", new XC_MethodHook() {
                 protected void afterHookedMethod(MethodHookParam param) {
-                    if (param.args.length == 7) rememberService(param.args[6]);
+                    if (param.args.length == 7) {
+                        bottomArea = new WeakReference<Object>(param.args[4]);
+                        rememberService(param.args[6]);
+                    }
                     scheduleColor();
                 }
             });
+            hookResizeBounds(p.classLoader);
+            if (hyperOs4 && "myron".equals(Class.forName("android.os.Build").getField("DEVICE").get(null))) {
+                hookK90KeyboardSize(p.classLoader);
+            }
             try {
                 hook(Class.forName("com.android.internal.policy.PhoneWindow"), "setNavigationBarColor",
                         new XC_MethodHook() {
+                            protected void beforeHookedMethod(MethodHookParam param) {
+                                if (gestureLayout && keyboardWindow.get() == param.thisObject) param.args[0] = 0;
+                            }
+
                             protected void afterHookedMethod(MethodHookParam param) {
                                 if (Boolean.TRUE.equals(updating.get())) return;
                                 rememberWindow(param.thisObject);
@@ -110,6 +125,128 @@ public final class BottomHook implements IXposedHookLoadPackage {
                     });
             log("READY " + p.processName);
         } catch (Throwable error) { failure("initialization", error); }
+    }
+
+    private void hookResizeBounds(ClassLoader loader) {
+        try {
+            if (!hyperOs4) return;
+            Class<?> resize = Class.forName("com.sohu.inputmethod.sogou.z0", false, loader);
+            Class<?> ime = Class.forName("com.sohu.inputmethod.sogou.MainImeServiceDel", false, loader);
+            Class<?> rect = Class.forName("android.graphics.Rect");
+            Class<?> view = Class.forName("android.view.View");
+            Method bounds = method(resize, "k", ime);
+            Field bottom = rect.getField("bottom");
+            Field top = rect.getField("top");
+            Method visible = view.getMethod("isShown");
+            Method location = view.getMethod("getLocationOnScreen", int[].class);
+
+            // The overlay, bottom drag limit and saved inset share the keyboard edge.
+            hookMethod(bounds, new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam param) throws ReflectiveOperationException {
+                    Object area = bottomArea.get();
+                    Object frame = param.getResult();
+                    if (area == null || frame == null || !(Boolean) visible.invoke(area)) return;
+                    int[] position = new int[2];
+                    location.invoke(area, position);
+                    int areaTop = position[1];
+                    if (areaTop > top.getInt(frame) && areaTop < bottom.getInt(frame)) {
+                        bottom.setInt(frame, areaTop);
+                    }
+                }
+            });
+        } catch (ClassNotFoundException | NoSuchMethodException absent) {
+            log("OPTIONAL keyboard resize callbacks are unavailable");
+        } catch (Throwable error) { failure("keyboard resize", error); }
+    }
+
+    private void hookK90KeyboardSize(ClassLoader loader) {
+        try {
+            String resize = "com.sogou.imskit.core.ui.keyboard.resize.";
+            String spec = "com.sohu.inputmethod.main.view.containerspec.";
+            Class<?> resizeManager = Class.forName(resize + "b", false, loader);
+            Field manager = field(resizeManager, "a");
+            Method resizeData = method(resizeManager, "a");
+            Method resizedKeyHeight = method(resizeData.getReturnType(), "v");
+            Class<?> config = Class.forName(resize + "keyboard.config.a", false, loader);
+            Class<?> configs = Class.forName(resize + "keyboard.config.b", false, loader);
+            Method currentConfig = method(configs, "a", Boolean.TYPE);
+            Field mode = field(config, "c");
+            Field arrangement = field(config, "d");
+            Class<?> candidate = Class.forName(spec + "CandidateBaseHeightProvider", false, loader);
+            Class<?> specData = Class.forName(spec + "d", false, loader);
+            Method copy = method(specData, "a");
+            Method contentHeight = method(copy.getReturnType(), "x", Integer.TYPE);
+            java.lang.reflect.Constructor<?> createSpec = specData.getDeclaredConstructor(copy.getReturnType());
+            createSpec.setAccessible(true);
+            Method sizeCandidate = method(Class.forName(spec + "h", false, loader), "b",
+                    Class.forName(spec + "c", false, loader), specData);
+            Class<?> themeMetrics = Class.forName("com.sogou.theme.datacache.a", false, loader);
+            Method sizeKeys = method(themeMetrics, "j", Integer.TYPE);
+            Method keyAreaInset = method(themeMetrics, "f");
+            Method extraRow = method(candidate, "b");
+            Method hasExtraRow = method(candidate, "f");
+            ThreadLocal<Integer> defaultKeyHeight = new ThreadLocal<Integer>();
+
+            // The bundled keyboard has a 140 px candidate strip and a 710 px key area
+            // on the 1200 px-wide K90 Pro Max. Feed those defaults into Sogou's own layout
+            // and let its normal resize calculation apply saved user adjustments.
+            hookMethod(extraRow, new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam param) throws ReflectiveOperationException {
+                    if (k90PortraitWidth() > 0) param.setResult(0);
+                }
+            });
+            hookMethod(hasExtraRow, new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam param) throws ReflectiveOperationException {
+                    if (k90PortraitWidth() > 0) param.setResult(false);
+                }
+            });
+            hookMethod(sizeCandidate, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam param) throws ReflectiveOperationException {
+                    int width = k90PortraitWidth();
+                    if (width <= 0) return;
+                    Object active = currentConfig.invoke(null, false);
+                    if (mode.getInt(active) != 0 || arrangement.getInt(active) != 0) return;
+                    Object builder = copy.invoke(param.args[1]);
+                    contentHeight.invoke(builder, Math.round(width * (140f / 1200)));
+                    param.args[1] = createSpec.newInstance(builder);
+                }
+            });
+            hookMethod(sizeKeys, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam param) throws ReflectiveOperationException {
+                    int width = k90PortraitWidth();
+                    if (width <= 0 || (Integer) param.args[0] <= 0) return;
+                    Object active = currentConfig.invoke(null, false);
+                    if (mode.getInt(active) != 0 || arrangement.getInt(active) != 0) return;
+                    int inset = (Integer) keyAreaInset.invoke(param.thisObject);
+                    int height = Math.round(width * (710f / 1200)) - inset;
+                    if (height <= 0) return;
+                    param.args[0] = height;
+                    defaultKeyHeight.set(height);
+                }
+
+                protected void afterHookedMethod(MethodHookParam param) throws ReflectiveOperationException {
+                    Integer defaultHeight = defaultKeyHeight.get();
+                    defaultKeyHeight.remove();
+                    if (param.getThrowable() != null || defaultHeight == null) return;
+                    Object data = resizeData.invoke(manager.get(null));
+                    int height = (Integer) resizedKeyHeight.invoke(data);
+                    param.setResult(height > 0 ? height : defaultHeight);
+                }
+            });
+        } catch (ClassNotFoundException | NoSuchMethodException absent) {
+            log("OPTIONAL K90 keyboard metrics are unavailable");
+        } catch (Throwable error) { failure("K90 keyboard metrics", error); }
+    }
+
+    private int k90PortraitWidth() throws ReflectiveOperationException {
+        Object window = keyboardWindow.get();
+        if (window == null) return 0;
+        Object context = method(window.getClass(), "getContext").invoke(window);
+        Object resources = method(context.getClass(), "getResources").invoke(context);
+        Object config = method(resources.getClass(), "getConfiguration").invoke(resources);
+        if (config.getClass().getField("orientation").getInt(config) != 1) return 0;
+        Object metrics = method(resources.getClass(), "getDisplayMetrics").invoke(resources);
+        return metrics.getClass().getField("widthPixels").getInt(metrics);
     }
 
     private static void plugin(ClassLoader loader) throws Throwable {
@@ -185,8 +322,29 @@ public final class BottomHook implements IXposedHookLoadPackage {
     private void rememberService(Object service) {
         try {
             Object dialog = method(service.getClass(), "getWindow").invoke(service);
-            if (dialog != null) rememberWindow(method(dialog.getClass(), "getWindow").invoke(dialog));
+            if (dialog == null) return;
+            Object window = method(dialog.getClass(), "getWindow").invoke(dialog);
+            rememberWindow(window);
+            if (hyperOs4 && window != null && keyboardWindow.get() == window) {
+                gestureLayout = fitGestureNavigation(window);
+            }
         } catch (Throwable error) { failure("input window", error); }
+    }
+
+    private static boolean fitGestureNavigation(Object window) throws ReflectiveOperationException {
+        Object context = window.getClass().getMethod("getContext").invoke(window);
+        Object resolver = context.getClass().getMethod("getContentResolver").invoke(context);
+        Class<?> settings = Class.forName("android.provider.Settings$Global");
+        Method getInt = settings.getMethod("getInt", Class.forName("android.content.ContentResolver"),
+                String.class, Integer.TYPE);
+        boolean gestures = (Integer) getInt.invoke(null, resolver, "force_fsg_nav_bar", 0) != 0;
+        // Let the IME content reach the same bottom edge as HyperOS's bundled keyboard.
+        // SystemUI still owns the gesture input region.
+        window.getClass().getMethod("setDecorFitsSystemWindows", Boolean.TYPE).invoke(window, !gestures);
+        if (gestures) {
+            window.getClass().getMethod("setNavigationBarContrastEnforced", Boolean.TYPE).invoke(window, false);
+        }
+        return gestures;
     }
 
     private void rememberWindow(Object window) {
