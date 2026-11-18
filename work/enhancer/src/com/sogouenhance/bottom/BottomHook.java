@@ -1,5 +1,7 @@
 package com.sogouenhance.bottom;
 
+import android.os.Handler;
+import android.os.Looper;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.ref.WeakReference;
@@ -20,6 +22,8 @@ public final class BottomHook implements IXposedHookLoadPackage {
     private Class<?> framework;
     private SkinPalette palette;
     private boolean refreshPending;
+    private long refreshPendingAt;
+    private Handler main;
     private String lastPalette;
 
     public void handleLoadPackage(LoadPackageParam p) {
@@ -165,17 +169,27 @@ public final class BottomHook implements IXposedHookLoadPackage {
         try {
             Object attrs = method(window.getClass(), "getAttributes").invoke(window);
             // Never let a settings/login Activity's navigation bar recolor the keyboard.
-            if (field(attrs.getClass(), "type").getInt(attrs) == 2011) keyboardWindow = new WeakReference<Object>(window);
+            int type = field(attrs.getClass(), "type").getInt(attrs);
+            if (type == 2011) keyboardWindow = new WeakReference<Object>(window);
         } catch (Throwable error) { failure("window type", error); }
+    }
+
+    private Handler main() {
+        if (main == null) main = new Handler(Looper.getMainLooper());
+        return main;
     }
 
     private synchronized void scheduleColor() {
         final Object window = keyboardWindow.get();
-        if (window == null || refreshPending || Boolean.TRUE.equals(updating.get())) return;
+        // A dropped post would otherwise wedge refreshPending forever and mute every later refresh.
+        boolean pending = refreshPending && System.currentTimeMillis() - refreshPendingAt < 3000;
+        if (window == null || pending || Boolean.TRUE.equals(updating.get())) {
+            return;
+        }
         try {
-            Object view = method(window.getClass(), "getDecorView").invoke(window);
             refreshPending = true;
-            boolean posted = (Boolean) method(view.getClass(), "post", Runnable.class).invoke(view, new Runnable() {
+            refreshPendingAt = System.currentTimeMillis();
+            boolean posted = main().post(new Runnable() {
                 public void run() {
                     synchronized (BottomHook.this) { refreshPending = false; }
                     if (keyboardWindow.get() != window) { scheduleColor(); return; }
