@@ -11,7 +11,6 @@ ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / 'work/enhancer'
 JAVA = ROOT / 'work/tools/jdk/jdk-21.0.12.1+1/bin/java.exe'
 JAVAC = JAVA.with_name('javac.exe')
-JAR = JAVA.with_name('jar.exe')
 TMP = BASE / 'tmp'
 
 
@@ -27,6 +26,33 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def allow_provider_retry(project):
+    path = project/'smali/com/sogouenhance/Prefs.smali'
+    text = path.read_text(encoding='utf-8').replace(
+        '.field private static sProviderBroken:Z', '.field private static sProviderRetryAt:J')
+    text = text.replace('''    sget-boolean v0, Lcom/sogouenhance/Prefs;->sProviderBroken:Z
+
+    const/4 v1, 0x0
+
+    if-eqz v0, :cond_0''', '''    const/4 v1, 0x0
+    invoke-static {}, Landroid/os/SystemClock;->elapsedRealtime()J
+    move-result-wide v2
+    sget-wide v4, Lcom/sogouenhance/Prefs;->sProviderRetryAt:J
+    cmp-long v0, v2, v4
+    if-gez v0, :cond_0''')
+    text = text.replace('''    const/4 p0, 0x1
+
+    sput-boolean p0, Lcom/sogouenhance/Prefs;->sProviderBroken:Z''',
+                        '''    invoke-static {}, Landroid/os/SystemClock;->elapsedRealtime()J
+    move-result-wide v2
+    const-wide/16 v4, 0x7d0
+    add-long/2addr v2, v4
+    sput-wide v2, Lcom/sogouenhance/Prefs;->sProviderRetryAt:J''')
+    if 'sProviderBroken' in text:
+        raise ValueError('Unable to update the baseline preference provider retry')
+    path.write_text(text, encoding='utf-8')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--variant', choices=('a', 'b', 'both'), default='both')
@@ -39,12 +65,15 @@ def main():
              ROOT/'搜狗输入法/搜狗输入法-20.16.0(2610)/搜狗输入法增强模块.apk')
     stubs = ROOT / 'work/ads/mod/stubs'
     run([JAVAC, '-encoding', 'UTF-8', '-d', BASE/'stubs', *stubs.rglob('*.java')])
-    run([JAR, 'cf', BASE/'stubs.jar', '-C', BASE/'stubs', '.'])
+    stub_archive = TMP/'xposed-stubs.jar'
+    with zipfile.ZipFile(stub_archive, 'w') as archive:
+        for stub in sorted((BASE/'stubs').rglob('*.class')):
+            archive.write(stub, stub.relative_to(BASE/'stubs').as_posix())
     run([JAVAC, '-source', '8', '-target', '8', '-encoding', 'UTF-8', '-implicit:none',
          '-sourcepath', BASE/'src', '-cp', BASE/'stubs', '-d', BASE/'classes',
          *(BASE/'src').rglob('*.java')])
     java('-cp', ROOT/'work/tools/r8.jar', 'com.android.tools.r8.D8', '--release',
-         '--min-api', '24', '--lib', BASE/'stubs.jar', '--no-desugaring',
+         '--min-api', '24', '--lib', stub_archive, '--no-desugaring',
          '--output', BASE/'dex', *(BASE/'classes').rglob('*.class'))
     report_path = BASE/'build/modules.json'
     reports = json.loads(report_path.read_text(encoding='utf-8')) if report_path.exists() else {}
@@ -137,6 +166,20 @@ def main():
                             'android:value="保留原增强功能，新增 HyperOS/MIUI 全面屏键盘优化适配"')
         if variant == 'a':
             shutil.copytree(BASE/'companion-smali', project/'smali', dirs_exist_ok=True)
+            allow_provider_retry(project)
+            text = text.replace('    <application ',
+                                '    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n'
+                                '    <application ', 1)
+            text = text.replace('android:name=".PrefProvider"/>',
+                                '''android:name=".PrefProvider">
+            <grant-uri-permission android:path="/visibility"/>
+        </provider>
+        <receiver android:name=".PreferenceAccessReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+            </intent-filter>
+        </receiver>''', 1)
             text = text.replace('android:targetActivity=".SettingsActivity"',
                                 'android:targetActivity=".AHomeActivity"')
             text = text.replace('        <activity-alias ',
@@ -147,7 +190,7 @@ def main():
                 '<string name="app_name">搜狗增强·方案A</string>'), encoding='utf-8')
         manifest.write_text(text, encoding='utf-8')
         config = project/'apktool.yml'
-        code, version = (6, '1.2.3') if variant == 'a' else (7, '1.2.3')
+        code, version = (7, '1.2.4') if variant == 'a' else (7, '1.2.3')
         config.write_text(config.read_text(encoding='utf-8').replace('versionCode: 1', f'versionCode: {code}')
                           .replace('versionName: 1.0', f'versionName: {version}'), encoding='utf-8')
         entries = ['com.sogouenhance.HookEntry', 'com.sogouenhance.bottom.BottomHook']

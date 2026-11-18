@@ -11,6 +11,7 @@
 .method protected onCreate(Landroid/os/Bundle;)V
     .locals 6
     invoke-super {p0, p1}, Landroid/app/Activity;->onCreate(Landroid/os/Bundle;)V
+    invoke-static {p0}, Lcom/sogouenhance/PreferenceAccessReceiver;->grant(Landroid/content/Context;)V
     const-string v0, "搜狗增强 · 方案 A"
     invoke-virtual {p0, v0}, Landroid/app/Activity;->setTitle(Ljava/lang/CharSequence;)V
     new-instance v0, Landroid/widget/ScrollView;
