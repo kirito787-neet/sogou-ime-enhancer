@@ -51,11 +51,34 @@
 > 详细的方案对比、源码结构与构建步骤见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) 与
 > [`work/enhancer/README.md`](work/enhancer/README.md)。
 
+## 皮肤解锁
+
+v1.3.7 起，两套方案都带皮肤解锁，实现放在
+`work/enhancer/src/com/sogouenhance/skin/SkinUnlockHook.java`，随各自 DEX 打包。
+
+参考实现是 LSPosed 模块 **SogouSkin**（作者 vhukze）：它先证明了 20.17.0 的付费态由客户端模型
+字段决定，并给出了停服域名的替代地址。本项目的皮肤解锁沿用同一思路，在其基础上做了范围收敛。
+
+- LSPosed 模块库：<https://modules.lsposed.org/module/io.github.vhukze.sogouskin>
+- 仓库：<https://github.com/Xposed-Modules-Repo/io.github.vhukze.sogouskin>
+
+| 注入点 | 本项目的处理 | 与 SogouSkin 的关系 |
+|---|---|---|
+| `SmartThemeSkinDetailActivity#T2` / `#E2`、`ThemePreviewActivity#L2` | `payment=1`、`vipOnly="0"`、`newVipType=0` | 同思路，同样在这三处置已购态 |
+| `com.sogou.theme.network.b#e` | `download.sginput.qq.com` → `srv.android.shouji.sogou.com` | 同思路，域名重写 |
+| `com.sogou.inputmethod.pay.e#d(midas.u)` | 仍需走支付时以结果码 0 回调并短路，不拉起收银台 | 本项目额外加的兜底 |
+
+范围收敛：只对皮肤页（`com.sogou.theme.*`、`com.sogou.home.costume.*`）与皮肤 assetType
+（2001/2012/2023/2027/2041/2042/6041/6042）生效，字体、表情、壁纸、会员、词库保持原流程。
+
+真机验证（K90 Pro Max / HyperOS 4）：付费皮肤详情直接显示「已购买」，点「立即启用」后
+`skindl.php` 请求被重写到可用域名，皮肤包下载、安装并自动应用。日志标签 `SogouSkin`。
+
 ## 版本历史
 
 | 版本 | 日期 | 变更 |
 |---|---|---|
-| [v1.3.7](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.7) | 2026-11-19 | 方案 A / B 加入本地皮肤解锁：皮肤商品走成功回调，跳过多米支付下单。 |
+| [v1.3.7](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.7) | 2026-11-19 | 方案 A / B 加入皮肤解锁：详情模型置已购 + 下载域名重写，付费皮肤可直接下载应用。 |
 | [v1.3.6](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.6) | 2026-11-19 | 修复 K90 Pro Max 正常输入时最后一排按键离底栏过远的问题。 |
 | [v1.3.5](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.5) | 2026-11-19 | 修复方案 A 和方案 B 的增强版号不一致。 |
 | [v1.3.4](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.4) | 2026-11-19 | 修复键盘切换菜单首屏漏显第五项和当前输入法勾选的问题。 |
