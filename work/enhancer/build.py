@@ -12,8 +12,8 @@ BASE = ROOT / 'work/enhancer'
 JAVA = ROOT / 'work/tools/jdk/jdk-21.0.12.1+1/bin/java.exe'
 JAVAC = JAVA.with_name('javac.exe')
 TMP = BASE / 'tmp'
-RELEASE_VERSION = '1.3.6'
-MODULE_VERSION_CODE = 15
+RELEASE_VERSION = '1.3.7'
+MODULE_VERSION_CODE = 16
 
 
 def run(args):
@@ -200,7 +200,8 @@ def main():
         config.write_text(config.read_text(encoding='utf-8')
                           .replace('versionCode: 1', f'versionCode: {MODULE_VERSION_CODE}')
                           .replace('versionName: 1.0', f'versionName: {RELEASE_VERSION}'), encoding='utf-8')
-        entries = ['com.sogouenhance.HookEntry', 'com.sogouenhance.bottom.BottomHook']
+        entries = ['com.sogouenhance.HookEntry', 'com.sogouenhance.bottom.BottomHook',
+                   'com.sogouenhance.skin.SkinUnlockHook']
         if variant == 'a':
             entries.append('com.sogouenhance.bottom.GestureHandleHook')
         else:

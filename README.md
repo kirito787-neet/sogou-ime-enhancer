@@ -11,8 +11,9 @@
 |---|---|
 | 普通版搜狗显示原生「全面屏键盘优化」底栏 | ✅ 真机验证 |
 | 去广告（键盘 / 互动 / 快捷栏 / 福利 / 开屏） | ✅ 真机验证 |
-| 方案 A · 官方包 + 独立增强模块（Xposed） | [v1.3.6](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.6) |
-| 方案 B · 内置增强单 APK | [v1.3.6](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.6) |
+| 付费皮肤解锁（A 已打通购买→下载→应用；B 同代码） | ✅ 方案 A 真机验证 |
+| 方案 A · 官方包 + 独立增强模块（Xposed） | [v1.3.7](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.7) |
+| 方案 B · 内置增强单 APK | [v1.3.7](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.7) |
 | 完整回归、语音登录、长时间稳定性 | ❌ 未验收 |
 
 ## 为什么不能"改 APK 重签"
@@ -54,6 +55,7 @@
 
 | 版本 | 日期 | 变更 |
 |---|---|---|
+| [v1.3.7](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.7) | 2026-11-19 | 方案 A / B 加入本地皮肤解锁：皮肤商品走成功回调，跳过多米支付下单。 |
 | [v1.3.6](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.6) | 2026-11-19 | 修复 K90 Pro Max 正常输入时最后一排按键离底栏过远的问题。 |
 | [v1.3.5](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.5) | 2026-11-19 | 修复方案 A 和方案 B 的增强版号不一致。 |
 | [v1.3.4](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.4) | 2026-11-19 | 修复键盘切换菜单首屏漏显第五项和当前输入法勾选的问题。 |
