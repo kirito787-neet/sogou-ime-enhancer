@@ -12,6 +12,8 @@ BASE = ROOT / 'work/enhancer'
 JAVA = ROOT / 'work/tools/jdk/jdk-21.0.12.1+1/bin/java.exe'
 JAVAC = JAVA.with_name('javac.exe')
 TMP = BASE / 'tmp'
+RELEASE_VERSION = '1.3.5'
+MODULE_VERSION_CODE = 14
 
 
 def run(args):
@@ -195,9 +197,9 @@ def main():
                 '<string name="app_name">搜狗增强·方案A</string>'), encoding='utf-8')
         manifest.write_text(text, encoding='utf-8')
         config = project/'apktool.yml'
-        code, version = (13, '1.3.4') if variant == 'a' else (12, '1.2.8')
-        config.write_text(config.read_text(encoding='utf-8').replace('versionCode: 1', f'versionCode: {code}')
-                          .replace('versionName: 1.0', f'versionName: {version}'), encoding='utf-8')
+        config.write_text(config.read_text(encoding='utf-8')
+                          .replace('versionCode: 1', f'versionCode: {MODULE_VERSION_CODE}')
+                          .replace('versionName: 1.0', f'versionName: {RELEASE_VERSION}'), encoding='utf-8')
         entries = ['com.sogouenhance.HookEntry', 'com.sogouenhance.bottom.BottomHook']
         if variant == 'a':
             entries.append('com.sogouenhance.bottom.GestureHandleHook')
@@ -218,7 +220,7 @@ def main():
             java('-jar', ROOT/'work/tools/signer.jar', '-a', packed, '-o', signed_dir)
         signed = next(signed_dir.glob('*.apk'))
         reports[variant] = {'apk': str(signed.relative_to(ROOT)), 'sha256': sha(signed),
-                            'version': version,
+                            'version': RELEASE_VERSION,
                             'baseline': 'com.sogouenhance 1.0', 'xposed_entries': entries,
                             'runtime': 'pending'}
     (BASE/'build/modules.json').write_text(json.dumps(reports, ensure_ascii=False, indent=2), encoding='utf-8')

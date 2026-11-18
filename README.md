@@ -1,20 +1,18 @@
 # 搜狗输入法 · 全面屏键盘优化 + 去广告（AI 实验项目）
 
-> ⚠️ **本项目全部代码、文档与构建脚本均由 AI（DeepSeek Harness 智能体）生成或修改，CodexGPT 参与了部分辅助工作。**
-> 详见 [AI-GENERATED.md](AI-GENERATED.md)。这是个人技术学习记录，不是可商用产品。
+> ⚠️ **本项目由 AI 主导开发与维护。** 代码、文档和构建脚本由 AI 在用户指导下生成或修改。详见 [AI 产物声明](AI-GENERATED.md)。
 >
 > **本项目仅供个人学习和研究使用。** 禁止商业用途；按"现状"提供、不提供任何担保，使用风险自负；
 > 与搜狐 / 搜狗公司无任何关联。完整条款见 [AI-GENERATED.md#免责声明--disclaimer](AI-GENERATED.md#免责声明--disclaimer)。
 
-在 **Xiaomi HyperOS / MIUI** 上，让**官方普通版**搜狗输入法获得系统级「全面屏键盘优化」底栏
-（语音 / 语言 / 布局 / 收起），并顺带移除键盘广告，且与小米版共存。
+在 **Xiaomi HyperOS / MIUI** 上，为**官方普通版**搜狗输入法启用系统级「全面屏键盘优化」底栏，并移除键盘广告。
 
 | 项 | 状态 |
 |---|---|
 | 普通版搜狗显示原生「全面屏键盘优化」底栏 | ✅ 真机验证 |
 | 去广告（键盘 / 互动 / 快捷栏 / 福利 / 开屏） | ✅ 真机验证 |
-| 方案 A：官方包 + 独立增强模块（Xposed） | ✅ 已发布 v1.2.3 |
-| 方案 B：内置增强的单 APK（独立包名共存） | ✅ 已发布 v1.2.3 |
+| 方案 A · 官方包 + 独立增强模块（Xposed） | [v1.3.5](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.5) |
+| 方案 B · 内置增强单 APK | [v1.3.5](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.5) |
 | 完整回归、语音登录、长时间稳定性 | ❌ 未验收 |
 
 ## 为什么不能"改 APK 重签"
@@ -33,7 +31,7 @@
 3. LSPosed 里启用模块，作用域勾选官方普通版搜狗
 4. 软重启输入法 / 设备
 
-从方案 A 1.3.0 起，HyperOS 4（Android 17）可在模块作用域中额外勾选「系统界面」并重启设备。
+从 v1.3.1 起，HyperOS 4（Android 17）上的方案 A 可在模块作用域中额外勾选「系统界面」并重启设备。
 启用后，主屏的软键盘弹出时会隐藏底部手势白条，收起后自动恢复。上滑回桌面等手势仍然可用。
 
 在 K90 Pro Max 的 HyperOS 4 上，普通竖屏键盘的默认尺寸对齐系统内置搜狗。全面屏手势模式下，键盘底栏延伸至屏幕底边，两侧图标完整显示。「键盘调节」仍可保存自定义尺寸，点「重置」可回到对齐后的默认尺寸。
@@ -43,7 +41,7 @@
 
 ### 方案 B · 内置增强单 APK
 
-一个 APK，装完即用，**不需要** LSPosed 作用域，与官方普通版、小米版共存。
+一个 APK，装完即用，**不需要** LSPosed 作用域。增强版作为独立应用安装。
 
 优点：开箱即用，不需要给模块配作用域。
 缺点：包体大（约 179 MB），内置的是搜狗 20.17.0 基线，无法跟随官方小版本更新；
@@ -56,12 +54,17 @@
 
 | 版本 | 日期 | 变更 |
 |---|---|---|
-| [v1.1.0](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.1.0) | 2026-10-21 | 首个测试版：20.17 方法改名适配 + MIUI 原生底栏 + 去广告 + 方案 B 单 APK |
-| [v1.2.0](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.2.0) | 2026-10-21 | 底栏跟随皮肤配色（`SkinPalette`），移除 1.1.0 的错误透明覆盖 |
-| [v1.2.1](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.2.1) | 2026-10-21 | 方案 A 入口与任务栈修缮（`AHomeActivity`），仅 A 有更新 |
-| [v1.2.3](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.2.3) | 2026-10-21 | 修复底栏刷新卡死（主线程 Handler + 3s 兜底）；修复方案 B 设置页 VerifyError |
+| [v1.3.5](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.5) | 2026-11-19 | 统一两套方案的增强版本号，补齐中文发布记录。 |
+| [v1.3.4](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.4) | 2026-11-19 | 修复键盘切换菜单首屏漏显第五项和当前输入法勾选的问题。 |
+| [v1.3.3](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.3) | 2026-11-19 | 修复键盘静置时侧边光效被截断，以及拖动底部手柄后露白的问题。 |
+| [v1.3.2](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.2) | 2026-11-19 | 拖动一侧手柄时固定另一侧边缘，统一预览和保存后的键盘位置。 |
+| [v1.3.1](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.1) | 2026-11-19 | 适配 Android 17 增强设置。方案 A 支持键盘弹出时隐藏系统手势白条。对齐 K90 Pro Max 默认键盘尺寸，修复底栏图标遮挡和调节框越界。 |
+| [v1.2.3](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.2.3) | 2026-10-21 | 修复底栏刷新卡死和方案 B 设置页校验失败。 |
+| [v1.2.1](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.2.1) | 2026-10-21 | 修复方案 A 的桌面入口和任务栈。 |
+| [v1.2.0](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.2.0) | 2026-10-21 | 底栏跟随当前皮肤配色，修复透明覆盖问题。 |
+| [v1.1.0](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.1.0) | 2026-10-21 | 首个测试版，适配搜狗 20.17，提供全面屏底栏、去广告和方案 B 单 APK。 |
 
-每个版本的 APK 与校验值见对应的 GitHub Release；仓库内**不存放 APK 二进制**。
+从 v1.3.5 起，GitHub 标签、附件名和两套方案的增强版本共用同一个版本号。旧包版本对应关系与校验值见 [版本与资产清单](docs/RELEASES.md)。
 
 ## 仓库结构
 
