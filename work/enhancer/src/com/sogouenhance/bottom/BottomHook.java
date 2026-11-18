@@ -117,6 +117,7 @@ public final class BottomHook implements IXposedHookLoadPackage {
         support(manager);
         disableXiaoAi(manager);
         filterListener(MANAGER + "$MiuiSwitchInputMethodListener", loader);
+        repairBottomMargins(manager, loader);
         hook(manager, "getSupportIme", new XC_MethodHook() {
             protected void beforeHookedMethod(MethodHookParam param) {
                 try {
@@ -129,6 +130,30 @@ public final class BottomHook implements IXposedHookLoadPackage {
                 } catch (Throwable error) { failure("enabled IMEs; original retained", error); }
             }
         });
+    }
+
+    private static void repairBottomMargins(Class<?> manager, ClassLoader loader) {
+        try {
+            Class<?> version = Class.forName("android.os.Build$VERSION");
+            if (version.getField("SDK_INT").getInt(null) < 37) return;
+            Class<?> util = Class.forName("com.miui.inputmethod.InputMethodUtil", false, loader);
+            Method updateOverlap = method(util, "updateBottomMargin", Integer.TYPE);
+            Method applyMargin = method(manager, "updateBottomMarginReal", Integer.TYPE);
+            // HyperOS 4 uses MATCH_PARENT as a pixel height when calculating the overlap.
+            // Clamp its negative overlap and the corresponding positive layout margin.
+            hookMethod(updateOverlap, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    if ((Integer) param.args[0] < 0) param.args[0] = 0;
+                }
+            });
+            hookMethod(applyMargin, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam param) {
+                    if ((Integer) param.args[0] > 0) param.args[0] = 0;
+                }
+            });
+        } catch (ClassNotFoundException | NoSuchMethodException absent) {
+            log("OPTIONAL bottom margin layout is unavailable");
+        } catch (Throwable error) { failure("bottom margin", error); }
     }
 
     private static void support(Class<?> owner) throws Throwable {
