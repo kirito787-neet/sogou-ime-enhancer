@@ -167,6 +167,11 @@ def main():
         if variant == 'a':
             shutil.copytree(BASE/'companion-smali', project/'smali', dirs_exist_ok=True)
             allow_provider_retry(project)
+            scope = project/'res/values/arrays.xml'
+            scope.write_text(scope.read_text(encoding='utf-8').replace(
+                '<item>com.sohu.inputmethod.sogou</item>',
+                '<item>com.sohu.inputmethod.sogou</item>\n        <item>com.android.systemui</item>'),
+                encoding='utf-8')
             text = text.replace('    <application ',
                                 '    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n'
                                 '    <application ', 1)
@@ -190,11 +195,14 @@ def main():
                 '<string name="app_name">搜狗增强·方案A</string>'), encoding='utf-8')
         manifest.write_text(text, encoding='utf-8')
         config = project/'apktool.yml'
-        code, version = (8, '1.2.5') if variant == 'a' else (7, '1.2.3')
+        code, version = (9, '1.3.0') if variant == 'a' else (7, '1.2.3')
         config.write_text(config.read_text(encoding='utf-8').replace('versionCode: 1', f'versionCode: {code}')
                           .replace('versionName: 1.0', f'versionName: {version}'), encoding='utf-8')
         entries = ['com.sogouenhance.HookEntry', 'com.sogouenhance.bottom.BottomHook']
-        if variant == 'b': entries.insert(0, 'com.sogouenhance.bottom.EmbeddedGuard')
+        if variant == 'a':
+            entries.append('com.sogouenhance.bottom.GestureHandleHook')
+        else:
+            entries.insert(0, 'com.sogouenhance.bottom.EmbeddedGuard')
         (project/'assets/xposed_init').write_text('\n'.join(entries)+'\n', encoding='utf-8')
         unsigned = BASE/f'build/enhancer-{variant}-base.apk'
         java('-jar', ROOT/'work/tools/apktool-fast.jar', 'b', project, '-p', ROOT/'work/framework',
