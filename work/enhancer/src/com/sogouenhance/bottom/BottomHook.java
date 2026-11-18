@@ -64,6 +64,8 @@ public final class BottomHook implements IXposedHookLoadPackage {
             });
             hookResizeBounds(p.classLoader);
             if (hyperOs4 && "myron".equals(Class.forName("android.os.Build").getField("DEVICE").get(null))) {
+                hookK90AdaptiveBottomInset(p.classLoader);
+                hookK90KeyGrid(p.classLoader);
                 hookK90KeyboardSize(p.classLoader);
                 hookK90ResizeGeometry(p.classLoader);
                 hookK90ThemeEffectBounds(p.classLoader);
@@ -165,6 +167,93 @@ public final class BottomHook implements IXposedHookLoadPackage {
         } catch (ClassNotFoundException | NoSuchMethodException absent) {
             log("OPTIONAL keyboard resize callbacks are unavailable");
         } catch (Throwable error) { failure("keyboard resize", error); }
+    }
+
+    private void hookK90AdaptiveBottomInset(ClassLoader loader) {
+        try {
+            String screen = "com.sogou.base.special.screen.";
+            Class<?> settings = Class.forName(screen + "SpecialScreenSettings", false, loader);
+            Method preferences = method(settings, "g");
+            Method mode = method(settings, "f");
+            Class<?> insets = Class.forName(screen + "g", false, loader);
+            // HyperOS already allocates the bottom toolbar. Sogou's automatic
+            // tall-screen padding would put a second gap beneath the painted keys.
+            hookMethod(method(insets, "a"), new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    if (gestureLayout && k90PortraitWidth() > 0 && (Integer) call.getResult() > 0
+                            && (Integer) mode.invoke(preferences.invoke(null)) == 2) {
+                        call.setResult(0);
+                    }
+                }
+            });
+        } catch (ClassNotFoundException | NoSuchMethodException absent) {
+            log("OPTIONAL K90 adaptive bottom inset unavailable");
+        } catch (Throwable error) { failure("K90 adaptive bottom inset", error); }
+    }
+
+    private void hookK90KeyGrid(ClassLoader loader) {
+        try {
+            String hostUi = "com.sogou.imskit.core.ui.";
+            Class<?> root = Class.forName(hostUi + "virtualwidget.component.RootComponentView", false, loader);
+            Class<?> keyView = Class.forName("com.sogou.bu.ui.keyboard.KeyboardRootComponentView", false, loader);
+            Class<?> component = Class.forName(hostUi + "keyboard.component.c", false, loader);
+            Class<?> virtual = Class.forName(hostUi + "virtualwidget.component.Component", false, loader);
+            Class<?> keyData = Class.forName("com.sogou.theme.data.key.BaseKeyData", false, loader);
+            Method content = method(root, "b");
+            Field table = field(component, "Y");
+            Method allKeys = method(table.getType(), "L0");
+            Method findKey = method(table.getType(), "D0", Integer.TYPE);
+            Method keyComponent = method(keyData, "s0");
+            Method visible = method(virtual, "I1");
+            Method bounds = method(virtual, "a1");
+            Field bottom = bounds.getReturnType().getField("bottom");
+            Class<?> view = Class.forName("android.view.View");
+            Method height = view.getMethod("getHeight");
+            Method width = view.getMethod("getWidth");
+            Method scaleY = view.getMethod("setScaleY", Float.TYPE);
+            Method pivotY = view.getMethod("setPivotY", Float.TYPE);
+
+            hookMethod(method(root, "onLayout", Boolean.TYPE, Integer.TYPE, Integer.TYPE,
+                    Integer.TYPE, Integer.TYPE), new XC_MethodHook() {
+                private WeakReference<Object> fitted = new WeakReference<Object>(null);
+
+                protected void afterHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    Object grid = call.thisObject;
+                    if (!keyView.isInstance(grid)) return;
+                    float scale = 1f;
+                    int screenWidth = k90PortraitWidth();
+                    Object body = content.invoke(grid);
+                    if (gestureLayout && screenWidth > 0 && normalKeyboard.get() != null
+                            && (Integer) width.invoke(grid) == screenWidth && component.isInstance(body)) {
+                        Object keyboard = table.get(body);
+                        if (keyboard != null && findKey.invoke(keyboard, 32) != null) {
+                            java.util.List<?> keys = (java.util.List<?>) allKeys.invoke(keyboard);
+                            int last = 0;
+                            if (keys != null) for (Object key : keys) {
+                                if (key == null) continue;
+                                Object cell = keyComponent.invoke(key);
+                                if (cell == null || !((Boolean) visible.invoke(cell))) continue;
+                                last = Math.max(last, bottom.getInt(bounds.invoke(cell)));
+                            }
+                            int available = (Integer) height.invoke(grid);
+                            int remainder = available - last;
+                            // Fit small skin gaps on the full-width key grid. The same View
+                            // transform covers rendering and touch hit-testing.
+                            if (last > 0 && remainder > 0 && remainder <= screenWidth / 50) {
+                                scale = (float) available / last;
+                            }
+                        }
+                    }
+                    if (scale != 1f || fitted.get() == grid) {
+                        pivotY.invoke(grid, 0f);
+                        scaleY.invoke(grid, scale);
+                        fitted = new WeakReference<Object>(scale == 1f ? null : grid);
+                    }
+                }
+            });
+        } catch (ClassNotFoundException | NoSuchMethodException | NoSuchFieldException absent) {
+            log("OPTIONAL K90 key grid unavailable: " + absent);
+        } catch (Throwable error) { failure("K90 key grid", error); }
     }
 
     private void hookK90ResizeGeometry(ClassLoader loader) {

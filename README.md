@@ -11,8 +11,8 @@
 |---|---|
 | 普通版搜狗显示原生「全面屏键盘优化」底栏 | ✅ 真机验证 |
 | 去广告（键盘 / 互动 / 快捷栏 / 福利 / 开屏） | ✅ 真机验证 |
-| 方案 A · 官方包 + 独立增强模块（Xposed） | [v1.3.5](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.5) |
-| 方案 B · 内置增强单 APK | [v1.3.5](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.5) |
+| 方案 A · 官方包 + 独立增强模块（Xposed） | [v1.3.6](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.6) |
+| 方案 B · 内置增强单 APK | [v1.3.6](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.6) |
 | 完整回归、语音登录、长时间稳定性 | ❌ 未验收 |
 
 ## 为什么不能"改 APK 重签"
@@ -31,7 +31,7 @@
 3. LSPosed 里启用模块，作用域勾选官方普通版搜狗
 4. 软重启输入法 / 设备
 
-从 v1.3.1 起，HyperOS 4（Android 17）上的方案 A 可在模块作用域中额外勾选「系统界面」并重启设备。
+从 v1.3.0 起，HyperOS 4（Android 17）上的方案 A 可在模块作用域中额外勾选「系统界面」并重启设备。
 启用后，主屏的软键盘弹出时会隐藏底部手势白条，收起后自动恢复。上滑回桌面等手势仍然可用。
 
 在 K90 Pro Max 的 HyperOS 4 上，普通竖屏键盘的默认尺寸对齐系统内置搜狗。全面屏手势模式下，键盘底栏延伸至屏幕底边，两侧图标完整显示。「键盘调节」仍可保存自定义尺寸，点「重置」可回到对齐后的默认尺寸。
@@ -54,12 +54,15 @@
 
 | 版本 | 日期 | 变更 |
 |---|---|---|
-| [v1.3.5](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.5) | 2026-11-19 | 统一两套方案的增强版本号，补齐中文发布记录。 |
+| [v1.3.6](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.6) | 2026-11-19 | 修复 K90 Pro Max 正常输入时最后一排按键离底栏过远的问题。 |
+| [v1.3.5](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.5) | 2026-11-19 | 修复方案 A 和方案 B 的增强版号不一致。 |
 | [v1.3.4](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.4) | 2026-11-19 | 修复键盘切换菜单首屏漏显第五项和当前输入法勾选的问题。 |
 | [v1.3.3](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.3) | 2026-11-19 | 修复键盘静置时侧边光效被截断，以及拖动底部手柄后露白的问题。 |
 | [v1.3.2](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.2) | 2026-11-19 | 拖动一侧手柄时固定另一侧边缘，统一预览和保存后的键盘位置。 |
-| [v1.3.1](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.1) | 2026-11-19 | 适配 Android 17 增强设置。方案 A 支持键盘弹出时隐藏系统手势白条。对齐 K90 Pro Max 默认键盘尺寸，修复底栏图标遮挡和调节框越界。 |
+| [v1.3.1](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.1) | 2026-11-19 | 对齐 K90 Pro Max 默认键盘尺寸，修复底栏图标遮挡和调节框越界。 |
+| [v1.3.0](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.3.0) | 2026-11-19 | 方案 A 支持键盘弹出时隐藏手势白条，修复 HyperOS 4 底栏留白和 Android 17 增强设置入口异常。 |
 | [v1.2.3](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.2.3) | 2026-10-21 | 修复底栏刷新卡死和方案 B 设置页校验失败。 |
+| [v1.2.2](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.2.2) | 2026-11-19（归档） | 修复方案 A 切换皮肤后底栏颜色不刷新的问题。 |
 | [v1.2.1](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.2.1) | 2026-10-21 | 修复方案 A 的桌面入口和任务栈。 |
 | [v1.2.0](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.2.0) | 2026-10-21 | 底栏跟随当前皮肤配色，修复透明覆盖问题。 |
 | [v1.1.0](https://github.com/kirito787-neet/sogou-ime-enhancer/releases/tag/v1.1.0) | 2026-10-21 | 首个测试版，适配搜狗 20.17，提供全面屏底栏、去广告和方案 B 单 APK。 |

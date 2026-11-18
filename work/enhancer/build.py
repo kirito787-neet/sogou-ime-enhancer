@@ -12,8 +12,8 @@ BASE = ROOT / 'work/enhancer'
 JAVA = ROOT / 'work/tools/jdk/jdk-21.0.12.1+1/bin/java.exe'
 JAVAC = JAVA.with_name('javac.exe')
 TMP = BASE / 'tmp'
-RELEASE_VERSION = '1.3.5'
-MODULE_VERSION_CODE = 14
+RELEASE_VERSION = '1.3.6'
+MODULE_VERSION_CODE = 15
 
 
 def run(args):
