@@ -20,6 +20,9 @@ public final class BottomHook implements IXposedHookLoadPackage {
     private final ThreadLocal<Boolean> updating = new ThreadLocal<Boolean>();
     private WeakReference<Object> keyboardWindow = new WeakReference<Object>(null);
     private WeakReference<Object> bottomArea = new WeakReference<Object>(null);
+    private WeakReference<Object> inputFrame = new WeakReference<Object>(null);
+    private WeakReference<Object> normalKeyboard = new WeakReference<Object>(null);
+    private int normalThemeBottomPadding;
     private Class<?> framework;
     private SkinPalette palette;
     private boolean refreshPending;
@@ -50,6 +53,7 @@ public final class BottomHook implements IXposedHookLoadPackage {
             hook(framework, "addMiuiBottomView", new XC_MethodHook() {
                 protected void afterHookedMethod(MethodHookParam param) {
                     if (param.args.length == 7) {
+                        inputFrame = new WeakReference<Object>(param.args[2]);
                         bottomArea = new WeakReference<Object>(param.args[4]);
                         rememberService(param.args[6]);
                     }
@@ -59,6 +63,7 @@ public final class BottomHook implements IXposedHookLoadPackage {
             hookResizeBounds(p.classLoader);
             if (hyperOs4 && "myron".equals(Class.forName("android.os.Build").getField("DEVICE").get(null))) {
                 hookK90KeyboardSize(p.classLoader);
+                hookK90ResizeGeometry(p.classLoader);
             }
             try {
                 hook(Class.forName("com.android.internal.policy.PhoneWindow"), "setNavigationBarColor",
@@ -157,6 +162,118 @@ public final class BottomHook implements IXposedHookLoadPackage {
         } catch (ClassNotFoundException | NoSuchMethodException absent) {
             log("OPTIONAL keyboard resize callbacks are unavailable");
         } catch (Throwable error) { failure("keyboard resize", error); }
+    }
+
+    private void hookK90ResizeGeometry(ClassLoader loader) {
+        try {
+            String root = "com.sogou.imskit.core.ui.keyboard.resize.";
+            String host = "com.sohu.inputmethod.sogou.";
+            Class<?> resize = Class.forName(host + "z0", false, loader);
+            Class<?> callbacks = Class.forName(host + "y0", false, loader);
+            Class<?> manager = Class.forName(root + "b", false, loader);
+            Field instance = field(manager, "a");
+            Method data = method(manager, "a");
+            Method savedInset = method(data.getReturnType(), "g0");
+            Class<?> metrics = Class.forName("com.sogou.theme.datacache.a", false, loader);
+            Class<?> layout = Class.forName("com.sogou.core.ui.window.StyleConstraintLayout", false, loader);
+            Class<?> view = Class.forName("android.view.View");
+            Method getParent = view.getMethod("getParent");
+            Method getParams = view.getMethod("getLayoutParams");
+            Method getHeight = view.getMethod("getHeight");
+            Method visible = view.getMethod("isShown");
+            Method location = view.getMethod("getLocationInWindow", int[].class);
+            Field gravity = Class.forName("android.widget.FrameLayout$LayoutParams").getField("gravity");
+            Field margin = Class.forName("android.view.ViewGroup$MarginLayoutParams").getField("bottomMargin");
+            Class<?> rect = Class.forName("android.graphics.Rect");
+            Field top = rect.getField("top");
+            Field bottom = rect.getField("bottom");
+            java.lang.reflect.Constructor<?> copyRect = rect.getConstructor(rect);
+            Class<?> presenter = Class.forName(root + "presenter.b", false, loader);
+            Class<?> rules = Class.forName(root + "layout.limit.f", false, loader);
+            Class<?> layoutProvider = Class.forName(host + "vpabridge.a", false, loader);
+            // Resolve all signatures before installing the related hooks.
+            Method limits = method(presenter, "j", rules, rect, layoutProvider);
+            Method preview = method(resize, "p", Integer.TYPE, Integer.TYPE, Integer.TYPE, Integer.TYPE);
+            Method currentRect = method(resize, "m");
+            Method drag = method(callbacks, "b", rect, rect);
+            Method measure = method(layout, "onMeasure", Integer.TYPE, Integer.TYPE);
+            Method themeInset = method(metrics, "f");
+
+            // The saved offset belongs below the keyboard. On this ROM Sogou passes it into
+            // skin sizing, while Android still lays out the resulting view against the footer.
+            hookMethod(themeInset, new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    Object keyboard = normalKeyboard.get();
+                    if (keyboard == null || k90PortraitWidth() <= 0
+                            || getParent.invoke(keyboard) != inputFrame.get()) return;
+                    int inset = (Integer) savedInset.invoke(data.invoke(instance.get(null)));
+                    int padding = Math.max(0, (Integer) call.getResult() - Math.max(0, inset));
+                    normalThemeBottomPadding = padding;
+                    call.setResult(padding);
+                }
+            });
+            hookMethod(measure, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    Object keyboard = call.thisObject;
+                    Object frame = inputFrame.get();
+                    if (frame == null || getParent.invoke(keyboard) != frame) return;
+                    Object params = getParams.invoke(keyboard);
+                    if (params == null || !gravity.getDeclaringClass().isInstance(params)) return;
+                    if ((gravity.getInt(params) & 0x70) != 0x50 || k90PortraitWidth() <= 0) {
+                        if (normalKeyboard.get() == keyboard) {
+                            margin.setInt(params, 0);
+                            normalKeyboard.clear();
+                        }
+                        return;
+                    }
+                    normalKeyboard = new WeakReference<Object>(keyboard);
+                    int inset = (Integer) savedInset.invoke(data.invoke(instance.get(null)));
+                    margin.setInt(params, Math.max(0, inset));
+                }
+            });
+
+            // The overlay shows the whole keyboard. Convert its bottom back to the
+            // skin's logical edge only when passing a drag to Sogou's resize calculation.
+            hookMethod(limits, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    Object area = bottomArea.get();
+                    if (normalKeyboard.get() == null || area == null || !(Boolean) visible.invoke(area)) return;
+                    int[] position = new int[2];
+                    location.invoke(area, position);
+                    if (position[1] > top.getInt(call.args[1])) bottom.setInt(call.args[1], position[1]);
+                }
+            });
+            hookMethod(preview, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    Object keyboard = normalKeyboard.get();
+                    if (keyboard == null || !(Boolean) visible.invoke(keyboard)) return;
+                    int height = (Integer) getHeight.invoke(keyboard);
+                    if (height > 0) call.args[3] = (Integer) call.args[1] + height;
+                }
+            });
+            hookMethod(currentRect, new XC_MethodHook() {
+                protected void afterHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    Object keyboard = normalKeyboard.get();
+                    Object result = call.getResult();
+                    if (keyboard == null || result == null || !(Boolean) visible.invoke(keyboard)) return;
+                    int height = (Integer) getHeight.invoke(keyboard);
+                    if (height > 0) bottom.setInt(result, top.getInt(result) + height);
+                }
+            });
+            hookMethod(drag, new XC_MethodHook() {
+                protected void beforeHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    if (normalKeyboard.get() == null || normalThemeBottomPadding <= 0) return;
+                    for (int i = 0; i < call.args.length; i++) {
+                        if (call.args[i] == null) continue;
+                        Object logical = copyRect.newInstance(call.args[i]);
+                        bottom.setInt(logical, bottom.getInt(logical) - normalThemeBottomPadding);
+                        call.args[i] = logical;
+                    }
+                }
+            });
+        } catch (ClassNotFoundException | NoSuchMethodException absent) {
+            log("OPTIONAL K90 resize geometry unavailable: " + absent);
+        } catch (Throwable error) { failure("K90 resize geometry", error); }
     }
 
     private void hookK90KeyboardSize(ClassLoader loader) {
