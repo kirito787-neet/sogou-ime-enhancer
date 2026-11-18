@@ -23,6 +23,8 @@ public final class BottomHook implements IXposedHookLoadPackage {
     private WeakReference<Object> inputFrame = new WeakReference<Object>(null);
     private WeakReference<Object> normalKeyboard = new WeakReference<Object>(null);
     private int normalThemeBottomPadding;
+    private int bottomColor;
+    private Object resizeGapBackground;
     private Class<?> framework;
     private SkinPalette palette;
     private boolean refreshPending;
@@ -64,6 +66,7 @@ public final class BottomHook implements IXposedHookLoadPackage {
             if (hyperOs4 && "myron".equals(Class.forName("android.os.Build").getField("DEVICE").get(null))) {
                 hookK90KeyboardSize(p.classLoader);
                 hookK90ResizeGeometry(p.classLoader);
+                hookK90ThemeEffectBounds(p.classLoader);
             }
             try {
                 hook(Class.forName("com.android.internal.policy.PhoneWindow"), "setNavigationBarColor",
@@ -197,7 +200,17 @@ public final class BottomHook implements IXposedHookLoadPackage {
             Method currentRect = method(resize, "m");
             Method drag = method(callbacks, "b", rect, rect);
             Method measure = method(layout, "onMeasure", Integer.TYPE, Integer.TYPE);
+            Method layoutChanged = method(layout, "onLayout", Boolean.TYPE, Integer.TYPE, Integer.TYPE,
+                    Integer.TYPE, Integer.TYPE);
             Method themeInset = method(metrics, "f");
+            Method getOverlay = view.getMethod("getOverlay");
+            Method width = view.getMethod("getWidth");
+            Method viewBottom = view.getMethod("getBottom");
+            Class<?> drawable = Class.forName("android.graphics.drawable.Drawable");
+            Class<?> colorDrawable = Class.forName("android.graphics.drawable.ColorDrawable");
+            Method setBounds = drawable.getMethod("setBounds", Integer.TYPE, Integer.TYPE,
+                    Integer.TYPE, Integer.TYPE);
+            Method addBackground = Class.forName("android.view.ViewOverlay").getMethod("add", drawable);
 
             // The saved offset belongs below the keyboard. On this ROM Sogou passes it into
             // skin sizing, while Android still lays out the resulting view against the footer.
@@ -226,9 +239,27 @@ public final class BottomHook implements IXposedHookLoadPackage {
                         }
                         return;
                     }
-                    normalKeyboard = new WeakReference<Object>(keyboard);
+                    if (normalKeyboard.get() != keyboard) normalKeyboard = new WeakReference<Object>(keyboard);
                     int inset = (Integer) savedInset.invoke(data.invoke(instance.get(null)));
                     margin.setInt(params, Math.max(0, inset));
+                }
+            });
+            hookMethod(layoutChanged, new XC_MethodHook() {
+                private WeakReference<Object> frameWithBackground = new WeakReference<Object>(null);
+
+                protected void afterHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    Object frame = inputFrame.get();
+                    if (frame == null || getParent.invoke(call.thisObject) != frame) return;
+                    if (frameWithBackground.get() != frame) {
+                        resizeGapBackground = colorDrawable.getConstructor(Integer.TYPE).newInstance(bottomColor);
+                        addBackground.invoke(getOverlay.invoke(frame), resizeGapBackground);
+                        frameWithBackground = new WeakReference<Object>(frame);
+                    }
+                    int end = (Integer) getHeight.invoke(frame);
+                    int start = call.thisObject == normalKeyboard.get()
+                            ? Math.min(end, (Integer) viewBottom.invoke(call.thisObject)) : end;
+                    // The editor can be seen through unused IME space underneath a raised keyboard.
+                    setBounds.invoke(resizeGapBackground, 0, start, width.invoke(frame), end);
                 }
             });
 
@@ -274,6 +305,48 @@ public final class BottomHook implements IXposedHookLoadPackage {
         } catch (ClassNotFoundException | NoSuchMethodException absent) {
             log("OPTIONAL K90 resize geometry unavailable: " + absent);
         } catch (Throwable error) { failure("K90 resize geometry", error); }
+    }
+
+    private void hookK90ThemeEffectBounds(ClassLoader loader) {
+        try {
+            Class<?> layer = Class.forName("com.sogou.inputmethod.themeimpl.k$b", false, loader);
+            Method placement = method(layer, "E");
+            Class<?> coordinates = placement.getReturnType();
+            Class<?> effect = Class.forName("com.sogou.theme.layer.ThemeWaoTopLayerView", false, loader);
+            Method effectPosition = method(effect, "setLayerPosition", coordinates);
+            Field width = field(coordinates, "a");
+            Field height = field(coordinates, "b");
+            Field top = field(coordinates, "d");
+            Class<?> view = Class.forName("android.view.View");
+            Method visible = view.getMethod("isShown");
+            Method getHeight = view.getMethod("getHeight");
+            Method getLocation = view.getMethod("getLocationInWindow", int[].class);
+            // The non-touchable skin popup still uses the old visible display frame.
+            // Extend just that full-width effect to the end of the IME footer.
+            XC_MethodHook extendToFooter = new XC_MethodHook() {
+                private void extend(Object result) throws ReflectiveOperationException {
+                    Object area = bottomArea.get();
+                    if (!gestureLayout || area == null || result == null || k90PortraitWidth() != width.getInt(result)
+                            || !((Boolean) visible.invoke(area)) || top.getInt(result) <= 0) return;
+                    int[] position = new int[2];
+                    getLocation.invoke(area, position);
+                    int fullHeight = position[1] + (Integer) getHeight.invoke(area) - top.getInt(result);
+                    if (fullHeight > height.getInt(result)) height.setInt(result, fullHeight);
+                }
+
+                protected void beforeHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    if (call.args.length == 1) extend(call.args[0]);
+                }
+
+                protected void afterHookedMethod(MethodHookParam call) throws ReflectiveOperationException {
+                    if (call.args.length == 0) extend(call.getResult());
+                }
+            };
+            hookMethod(placement, extendToFooter);
+            hookMethod(effectPosition, extendToFooter);
+        } catch (ClassNotFoundException | NoSuchMethodException absent) {
+            log("OPTIONAL K90 theme effect bounds unavailable: " + absent);
+        } catch (Throwable error) { failure("K90 theme effect bounds", error); }
     }
 
     private void hookK90KeyboardSize(ClassLoader loader) {
@@ -497,6 +570,11 @@ public final class BottomHook implements IXposedHookLoadPackage {
                     try {
                         Object context = method(window.getClass(), "getContext").invoke(window);
                         int[] colors = palette.resolve(context);
+                        bottomColor = colors[0];
+                        if (resizeGapBackground != null) {
+                            resizeGapBackground.getClass().getMethod("setColor", Integer.TYPE)
+                                    .invoke(resizeGapBackground, bottomColor);
+                        }
                         method(framework, "customizeBottomViewColor", Boolean.TYPE, Integer.TYPE, Integer.TYPE, Integer.TYPE)
                                 .invoke(null, true, colors[0], colors[1], colors[2]);
                         method(window.getClass(), "setNavigationBarColor", Integer.TYPE).invoke(window, colors[0]);
